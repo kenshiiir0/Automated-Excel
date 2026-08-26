@@ -1,6 +1,6 @@
-import { supabaseAdmin } from '../lib/supabase.js';
+const { supabaseAdmin } = require('../lib/supabase.js');
 
-export const getAllLeaves = async (req, res) => {
+const getAllLeaves = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('leave_records')
@@ -14,7 +14,7 @@ export const getAllLeaves = async (req, res) => {
     }
 };
 
-export const getLeavesByEmployee = async (req, res) => {
+const getLeavesByEmployee = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('leave_records')
@@ -28,7 +28,7 @@ export const getLeavesByEmployee = async (req, res) => {
     }
 };
 
-export const createLeave = async (req, res) => {
+const createLeave = async (req, res) => {
     try {
         const { emp_id, leave_type, start_date, end_date, days_count, status } = req.body;
 
@@ -44,7 +44,7 @@ export const createLeave = async (req, res) => {
     }
 };
 
-export const updateLeave = async (req, res) => {
+const updateLeave = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('leave_records')
@@ -58,3 +58,5 @@ export const updateLeave = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+module.exports = { getAllLeaves, getLeavesByEmployee, createLeave, updateLeave };

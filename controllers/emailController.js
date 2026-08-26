@@ -1,7 +1,6 @@
-import { supabaseAdmin } from '../lib/supabase.js';
-import axios from 'axios';
+const { supabaseAdmin } = require('../lib/supabase.js');
 
-export const getEmailDirectory = async (req, res) => {
+const getEmailDirectory = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('email_directory')
@@ -15,7 +14,7 @@ export const getEmailDirectory = async (req, res) => {
     }
 };
 
-export const addToDirectory = async (req, res) => {
+const addToDirectory = async (req, res) => {
     try {
         const { emp_id, employee_name, company_email, mail_provider, phone } = req.body;
 
@@ -31,11 +30,10 @@ export const addToDirectory = async (req, res) => {
     }
 };
 
-export const sendEmail = async (req, res) => {
+const sendEmail = async (req, res) => {
     try {
         const { to, subject, message } = req.body;
 
-        // Log email send (in production, integrate with Zoho Mail API)
         console.log(`Email sent to ${to}: ${subject}`);
 
         res.json({ success: true, message: 'Email queued for sending', data: { to, subject } });
@@ -43,3 +41,5 @@ export const sendEmail = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+module.exports = { getEmailDirectory, addToDirectory, sendEmail };

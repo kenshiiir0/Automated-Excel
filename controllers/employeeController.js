@@ -1,6 +1,6 @@
-import { supabaseAdmin } from '../lib/supabase.js';
+const { supabaseAdmin } = require('../lib/supabase.js');
 
-export const getAllEmployees = async (req, res) => {
+const getAllEmployees = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('employees')
@@ -14,7 +14,7 @@ export const getAllEmployees = async (req, res) => {
     }
 };
 
-export const getEmployeeById = async (req, res) => {
+const getEmployeeById = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('employees')
@@ -29,7 +29,7 @@ export const getEmployeeById = async (req, res) => {
     }
 };
 
-export const createEmployee = async (req, res) => {
+const createEmployee = async (req, res) => {
     try {
         const { emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary } = req.body;
 
@@ -45,7 +45,7 @@ export const createEmployee = async (req, res) => {
     }
 };
 
-export const updateEmployee = async (req, res) => {
+const updateEmployee = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('employees')
@@ -60,7 +60,7 @@ export const updateEmployee = async (req, res) => {
     }
 };
 
-export const deleteEmployee = async (req, res) => {
+const deleteEmployee = async (req, res) => {
     try {
         const { error } = await supabaseAdmin
             .from('employees')
@@ -73,3 +73,5 @@ export const deleteEmployee = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+module.exports = { getAllEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee };

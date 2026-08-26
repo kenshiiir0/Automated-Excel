@@ -1,6 +1,6 @@
-import { supabaseAdmin } from '../lib/supabase.js';
+const { supabaseAdmin } = require('../lib/supabase.js');
 
-export const getAllCandidates = async (req, res) => {
+const getAllCandidates = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('recruitment_candidates')
@@ -14,7 +14,7 @@ export const getAllCandidates = async (req, res) => {
     }
 };
 
-export const createCandidate = async (req, res) => {
+const createCandidate = async (req, res) => {
     try {
         const { candidate_name, position, department, status, email, phone, previous_company, resume_url } = req.body;
 
@@ -30,7 +30,7 @@ export const createCandidate = async (req, res) => {
     }
 };
 
-export const updateCandidate = async (req, res) => {
+const updateCandidate = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('recruitment_candidates')
@@ -45,7 +45,7 @@ export const updateCandidate = async (req, res) => {
     }
 };
 
-export const deleteCandidate = async (req, res) => {
+const deleteCandidate = async (req, res) => {
     try {
         const { error } = await supabaseAdmin
             .from('recruitment_candidates')
@@ -58,3 +58,5 @@ export const deleteCandidate = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+module.exports = { getAllCandidates, createCandidate, updateCandidate, deleteCandidate };

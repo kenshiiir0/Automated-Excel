@@ -1,42 +1,36 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const path = require('path');
 
-// Import routes
-import employeeRoutes from './routes/employees.js';
-import recruitmentRoutes from './routes/recruitment.js';
-import emailRoutes from './routes/email.js';
-import leaveRoutes from './routes/leaves.js';
-import dashboardRoutes from './routes/dashboard.js';
+const employeeRoutes = require('./routes/employees.js');
+const recruitmentRoutes = require('./routes/recruitment.js');
+const emailRoutes = require('./routes/email.js');
+const leaveRoutes = require('./routes/leaves.js');
+const dashboardRoutes = require('./routes/dashboard.js');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'GetMeds HR API is running' });
-});
-
-// Routes
 app.use('/api/employees', employeeRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Error handling
-app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+app.use(express.static(path.join(__dirname, 'frontend')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-// Start server
 app.listen(PORT, () => {
-    console.log(`🚀 GetMeds HR API running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;

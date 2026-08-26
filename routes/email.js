@@ -1,51 +1,10 @@
-import express from 'express';
-import { supabase } from '../lib/supabase.js';
+const express = require('express');
+const { getEmailDirectory, addToDirectory, sendEmail } = require('../controllers/emailController.js');
 
 const router = express.Router();
 
-// GET email directory
-router.get('/directory', async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('email_directory')
-            .select('*')
-            .order('created_at', { ascending: false });
+router.get('/directory', getEmailDirectory);
+router.post('/directory', addToDirectory);
+router.post('/send', sendEmail);
 
-        if (error) throw error;
-        res.json(data);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST add to email directory
-router.post('/directory', async (req, res) => {
-    try {
-        const { emp_id, employee_name, company_email, mail_provider, phone } = req.body;
-
-        const { data, error } = await supabase
-            .from('email_directory')
-            .insert([{ emp_id, employee_name, company_email, mail_provider, phone }])
-            .select();
-
-        if (error) throw error;
-        res.status(201).json(data[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST send email
-router.post('/send', async (req, res) => {
-    try {
-        const { to, subject, message } = req.body;
-
-        console.log(`Email sent to ${to}: ${subject}`);
-
-        res.json({ success: true, message: 'Email queued for sending', data: { to, subject } });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-export default router;
+module.exports = router;
