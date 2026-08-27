@@ -374,8 +374,8 @@ body {
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: #0F5777;
-  border-right: 3px solid #1D9FDA;
+  background: linear-gradient(190deg, #0F5777 0%, #12678D 45%, #1D6B5C 78%, #1F7A4E 100%);
+  border-right: 3px solid #1EA0DA;
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -417,6 +417,13 @@ body {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.3px;
+}
+
+.sidebar-brand-logo {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .brand-text {
@@ -540,7 +547,7 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1EA0DA, #0F5777);
+  background: linear-gradient(135deg, #1EA0DA, #60A644);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -595,7 +602,7 @@ body {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1EA0DA, #0F5777);
+  background: linear-gradient(135deg, #1EA0DA, #60A644);
   color: #fff;
   font-size: 26px;
   font-weight: 800;
@@ -741,7 +748,7 @@ body {
 }
 
 .page-kpi-card.navy  { background: linear-gradient(135deg, #0F5777, #12678D); }
-.page-kpi-card.teal  { background: linear-gradient(135deg, #1D9FDA, #12678D); }
+.page-kpi-card.teal  { background: linear-gradient(135deg, #1EA0DA, #60A644); }
 .page-kpi-card.orange{ background: linear-gradient(135deg, #ed7d31, #f59a50); }
 .page-kpi-card.green { background: linear-gradient(135deg, #2e7d32, #43a047); }
 .page-kpi-card.red   { background: linear-gradient(135deg, #c0504d, #e57373); }
@@ -1038,7 +1045,7 @@ body {
 }
 
 .avatar.teal-avatar {
-  background: linear-gradient(135deg, #1EA0DA, #0F5777);
+  background: linear-gradient(135deg, #1EA0DA, #60A644);
 }
 
 /* =====================================================
@@ -1061,7 +1068,7 @@ body {
    ===================================================== */
 
 .btn-primary {
-  background: linear-gradient(135deg, #1EA0DA, #0F5777);
+  background: linear-gradient(135deg, #1EA0DA, #60A644);
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -1075,7 +1082,7 @@ body {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1887B9, #1D9FDA);
+  background: linear-gradient(135deg, #1EA0DA, #60A644);
   box-shadow: 0 4px 12px rgba(30,129,119,0.35);
   transform: translateY(-1px);
 }
@@ -1297,7 +1304,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.toast-success { background: linear-gradient(135deg, #1D9FDA, #178a4f); }
+.toast-success { background: linear-gradient(135deg, #1EA0DA, #60A644); }
 .toast-error   { background: linear-gradient(135deg, #c0504d, #e57373); }
 .toast-info    { background: linear-gradient(135deg, #0F5777, #12678D); }
 
@@ -1965,7 +1972,7 @@ body {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0F5777 0%, #12678D 55%, #1D9FDA 100%);
+  background: linear-gradient(135deg, #0F5777 0%, #146B8F 35%, #1D9FDA 60%, #3E9E5E 85%, #60A644 100%);
   padding: 20px;
 }
 
@@ -2003,12 +2010,12 @@ body {
 }
 
 .login-blob-3 {
-  width: 200px;
-  height: 200px;
-  background: #61A644;
-  top: 42%;
-  right: 8%;
-  opacity: 0.22;
+  width: 320px;
+  height: 320px;
+  background: #60A644;
+  top: 38%;
+  right: 6%;
+  opacity: 0.35;
   animation-delay: -10s;
 }
 
@@ -2039,15 +2046,17 @@ body {
 .login-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin-bottom: 26px;
 }
 
-.login-brand-mark {
-  width: 46px;
-  height: 46px;
-  font-size: 16px;
-  box-shadow: 0 6px 16px rgba(29, 159, 218, 0.35);
+.login-brand-logo {
+  height: 64px;
+  width: auto;
+  max-width: 260px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(15, 87, 119, 0.25));
 }
 
 .login-title {

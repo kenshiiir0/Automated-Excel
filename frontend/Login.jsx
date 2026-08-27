@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from './authContext.jsx';
 import Icon from './Icon.jsx';
+import { GETMEDS_LOGO_FULL } from './brandAssets.js';
 
 // ---------------------------------------------------------------------------
 // Three-step auth screen:
@@ -21,11 +22,7 @@ export default function Login() {
 
             <div className="login-card">
                 <div className="login-brand">
-                    <span className="brand-mark login-brand-mark">GM</span>
-                    <div>
-                        <div className="login-title">GetMeds HR</div>
-                        <div className="login-subtitle">Analytics &amp; Portal</div>
-                    </div>
+                    <img src={GETMEDS_LOGO_FULL} alt="GetMEDS" className="login-brand-logo" />
                 </div>
 
                 {mode === 'login' && <LoginForm onSwitchToSignup={() => setMode('signup')} />}

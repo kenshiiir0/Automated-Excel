@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../authContext.jsx';
 import Icon from '../../Icon.jsx';
+import { GETMEDS_LOGO_ICON } from '../../brandAssets.js';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: 'dashboard', end: true },
@@ -60,7 +61,7 @@ export default function Navigation() {
     >
       <div className="sidebar-top">
         <div className="sidebar-brand">
-          <span className="brand-mark">GM</span>
+          <img src={GETMEDS_LOGO_ICON} alt="GetMEDS" className="sidebar-brand-logo" />
           {expanded && (
             <div className="brand-text">
               <span className="brand-title">GetMeds HR</span>
