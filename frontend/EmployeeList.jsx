@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import EmployeeDetailModal from './src/components/EmployeeDetailModal.jsx';
+import Modal from './Modal.jsx';
 import Icon from './Icon.jsx';
+import { useAuth } from './authContext.jsx';
 
 const STATUS_COLORS = {
   Active: { bg: '#e6f4ea', color: '#137333', dot: '#34a853' },
@@ -142,6 +144,9 @@ const EMPTY_FORM = {
 export default function EmployeeList() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const canWrite = user?.role === 'admin' || user?.role === 'super_admin';
+
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -293,9 +298,11 @@ export default function EmployeeList() {
           <h1 className="page-title">Employee Directory</h1>
           <p className="page-subtitle">Manage and view all employee records</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Cancel' : '+ Add Employee'}
-        </button>
+        {canWrite && (
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            + Add Employee
+          </button>
+        )}
       </div>
 
       {/* KPI Summary */}
@@ -327,10 +334,9 @@ export default function EmployeeList() {
         </div>
       </div>
 
-      {/* Add Employee Form */}
-      {showForm && (
-        <div className="form-card">
-          <h2 className="form-card-title">New Employee Record</h2>
+      {/* Add Employee Modal */}
+      {showForm && canWrite && (
+        <Modal title="New Employee Record" onClose={() => setShowForm(false)}>
           <form onSubmit={handleAddEmployee}>
             <div className="emp-form-grid">
               {field('Employee ID', 'emp_id', 'text', { required: true })}
@@ -356,7 +362,7 @@ export default function EmployeeList() {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* Search & Filters */}

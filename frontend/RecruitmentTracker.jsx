@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Icon from './Icon.jsx';
+import Modal from './Modal.jsx';
+import { useAuth } from './authContext.jsx';
 
 const STATUS_META = {
   Open:       { bg: '#fff3e0', color: '#e65100', dot: '#fb8c00' },
@@ -52,6 +54,9 @@ const EMPTY_FORM = {
 export default function RecruitmentTracker() {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const canWrite = user?.role === 'admin' || user?.role === 'super_admin';
+
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -208,9 +213,11 @@ export default function RecruitmentTracker() {
           <h1 className="page-title">Recruitment Pipeline</h1>
           <p className="page-subtitle">Track and manage all active candidates</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Cancel' : '+ Add Candidate'}
-        </button>
+        {canWrite && (
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            + Add Candidate
+          </button>
+        )}
       </div>
 
       {/* KPI Row */}
@@ -273,10 +280,9 @@ export default function RecruitmentTracker() {
         </div>
       )}
 
-      {/* Add Candidate Form */}
-      {showForm && (
-        <div className="form-card">
-          <h2 className="form-card-title">New Candidate</h2>
+      {/* Add Candidate Modal */}
+      {showForm && canWrite && (
+        <Modal title="New Candidate" onClose={() => setShowForm(false)}>
           <form onSubmit={handleAddCandidate}>
             <div className="emp-form-grid">
               {field('Candidate Name', 'candidate_name', 'text', { required: true })}
@@ -298,7 +304,7 @@ export default function RecruitmentTracker() {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* Search & Filters */}
@@ -414,22 +420,26 @@ export default function RecruitmentTracker() {
                   <td style={{ fontSize: 12, color: '#4a5568', fontWeight: 500 }}>{c.recruiter || <span style={{ color: '#cbd5e0', fontStyle: 'italic' }}>Unassigned</span>}</td>
                   <td style={{ fontSize: 12, color: '#718096' }}>{c.previous_company || '—'}</td>
                   <td>
-                    <select
-                      className="status-select"
-                      value={c.status || ''}
-                      onChange={e => handleUpdateStatus(c.id, e.target.value)}
-                      style={{ '--dot-color': getStatusMeta(c.status).dot }}
-                    >
-                      <option value={c.status}>{c.status}</option>
-                      <option value="Applied">Applied</option>
-                      <option value="Screening">Screening</option>
-                      <option value="Interview">Interview</option>
-                      <option value="Offer">Offer</option>
-                      <option value="Hired">Hired</option>
-                      <option value="Closed">Closed</option>
-                      <option value="Rejected">Rejected</option>
-                      <option value="Withdrawn">Withdrawn</option>
-                    </select>
+                    {canWrite ? (
+                      <select
+                        className="status-select"
+                        value={c.status || ''}
+                        onChange={e => handleUpdateStatus(c.id, e.target.value)}
+                        style={{ '--dot-color': getStatusMeta(c.status).dot }}
+                      >
+                        <option value={c.status}>{c.status}</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Screening">Screening</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Hired">Hired</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Withdrawn">Withdrawn</option>
+                      </select>
+                    ) : (
+                      <StatusBadge status={c.status} />
+                    )}
                   </td>
                   <td style={{ fontSize: 12, color: '#718096', maxWidth: 200 }}>
                     <span title={c.remarks}>{c.remarks?.length > 40 ? c.remarks.substring(0, 40) + '…' : (c.remarks || '—')}</span>

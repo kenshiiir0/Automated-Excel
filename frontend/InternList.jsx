@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Icon from './Icon.jsx';
+import Modal from './Modal.jsx';
+import { useAuth } from './authContext.jsx';
 
 const EMPTY_FORM = {
   last_name: '', first_name: '', middle_name: '', middle_initial: '',
@@ -10,6 +12,9 @@ const EMPTY_FORM = {
 export default function InternList() {
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const canWrite = user?.role === 'admin' || user?.role === 'super_admin';
+
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -115,9 +120,11 @@ export default function InternList() {
           <h1 className="page-title">Intern Masterfile</h1>
           <p className="page-subtitle">All intern records on file, across every school and department</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Cancel' : '+ Add Intern'}
-        </button>
+        {canWrite && (
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            + Add Intern
+          </button>
+        )}
       </div>
 
       <div className="page-kpi-row">
@@ -135,9 +142,8 @@ export default function InternList() {
         </div>
       </div>
 
-      {showForm && (
-        <div className="form-card">
-          <h2 className="form-card-title">New Intern Record</h2>
+      {showForm && canWrite && (
+        <Modal title="New Intern Record" onClose={() => setShowForm(false)}>
           <form onSubmit={handleAdd}>
             <div className="emp-form-grid">
               {field('Last Name', 'last_name', 'text', { required: true })}
@@ -159,7 +165,7 @@ export default function InternList() {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       <div className="search-filter-bar">
