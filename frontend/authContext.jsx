@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = 'hr_auth_token';
@@ -67,9 +67,16 @@ export function AuthProvider({ children }) {
         setTimeout(() => logout(), 450);
     }, [logout]);
 
-    useEffect(() => {
-        installAuthFetch(logout);
-    }, [logout]);
+    // Patched synchronously during render (NOT inside useEffect) so that
+    // window.fetch already carries the auth header before any child
+    // component's own useEffect can fire its first API call. On a hard
+    // refresh, React mounts AuthProvider and its children together; if
+    // this patch happened inside a useEffect here, a child's effect
+    // (e.g. a page's initial data fetch) could run first and go out
+    // with no Authorization header at all -- a real, correct 401 from
+    // the server, but a confusing one since the token was fine all
+    // along. Calling it directly in the component body avoids that race.
+    installAuthFetch(logout);
 
     const login = useCallback(async (username, password) => {
         const res = await fetch('/api/auth/login', {
