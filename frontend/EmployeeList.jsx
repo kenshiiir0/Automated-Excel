@@ -53,10 +53,12 @@ function ClassBadge({ cls }) {
   );
 }
 
-// Three-dot row-actions menu: 'View Details' up top, a divider, then a
-// visually distinct red 'Delete' at the bottom. Closes itself on an outside
-// click or Escape so it never lingers open when the user clicks elsewhere.
-function RowActionsMenu({ onView, onDelete }) {
+// Three-dot row-actions menu: currently just 'View Details'. Delete was
+// removed from the interface (kept as a dropdown, not a plain button, so
+// any future row actions have a place to live without a redesign) --
+// closes itself on an outside click or Escape so it never lingers open
+// when the user clicks elsewhere.
+function RowActionsMenu({ onView }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const triggerRef = useRef(null);
@@ -123,14 +125,6 @@ function RowActionsMenu({ onView, onDelete }) {
             onClick={() => { setOpen(false); onView(); }}
           >
             <Icon name="eye" size={14} /> View Details
-          </button>
-          <div className="row-actions-divider" />
-          <button
-            className="row-actions-item danger"
-            role="menuitem"
-            onClick={() => { setOpen(false); onDelete(); }}
-          >
-            <Icon name="trash" size={14} /> Delete
           </button>
         </div>
       )}
@@ -203,17 +197,6 @@ export default function EmployeeList() {
       showToast('Failed to add employee.', 'error');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Remove ${name} from the system?`)) return;
-    try {
-      await fetch(`/api/employees/${id}`, { method: 'DELETE' });
-      setEmployees(employees.filter(e => e.id !== id));
-      showToast(`${name} removed.`, 'info');
-    } catch (err) {
-      showToast('Failed to delete.', 'error');
     }
   };
 
@@ -508,7 +491,6 @@ export default function EmployeeList() {
                   <td>
                     <RowActionsMenu
                       onView={() => setSelectedEmpId(emp.id)}
-                      onDelete={() => handleDelete(emp.id, `${emp.first_name} ${emp.last_name}`)}
                     />
                   </td>
                 </tr>

@@ -63,17 +63,6 @@ export default function InternList() {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Remove ${name} from the intern masterfile?`)) return;
-    try {
-      await fetch(`/api/interns/${id}`, { method: 'DELETE' });
-      setInterns(interns.filter(i => i.id !== id));
-      showToast(`${name} removed.`, 'info');
-    } catch (err) {
-      showToast('Failed to delete.', 'error');
-    }
-  };
-
   const departments = useMemo(() =>
     [...new Set(interns.map(i => i.department).filter(Boolean))].sort()
   , [interns]);
@@ -206,15 +195,14 @@ export default function InternList() {
               <th>Contact</th>
               <th>Email</th>
               <th>Birthday</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0' }}>Loading…</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0' }}>Loading…</td></tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                   No intern records match your search.
                 </td>
               </tr>
@@ -237,15 +225,6 @@ export default function InternList() {
                 </td>
                 <td style={{ fontSize: 12, color: '#718096' }}>
                   {i.birthday ? new Date(i.birthday).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Nothing to show yet'}
-                </td>
-                <td>
-                  <button
-                    className="btn-danger-sm"
-                    onClick={() => handleDelete(i.id, `${i.first_name} ${i.last_name}`)}
-                    title="Remove intern record"
-                  >
-                    Delete
-                  </button>
                 </td>
               </tr>
             ))}
