@@ -1,4 +1,7 @@
+import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../lib/supabase.js';
+import { sendWelcomeEmail } from '../lib/resend.js';
+import { isAllowedSignupEmail, ALLOWED_SIGNUP_DOMAINS } from '../lib/allowedDomains.js';
 
 const VALID_ROLES = ['super_admin', 'admin', 'user'];
 
@@ -63,4 +66,85 @@ const updateUser = async (req, res) => {
     }
 };
 
-export { listUsers, updateUser };
+
+function generateTempPassword() {
+    // 12 random chars from an unambiguous alphabet (no 0/O/1/l/I) so it's
+    // easy to read off an email and type in, but still hard to guess.
+    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let out = '';
+    for (let i = 0; i < 12; i++) {
+        out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+}
+
+// Admin-initiated account creation, distinct from self-signup: a
+// super_admin picks the email, name, and role right here, we generate a
+// temporary password and email it, and the account is active + verified
+// immediately -- no OTP round-trip. The new person fills in the rest of
+// their own details (phone, password change) later via their own Profile
+// page, rather than the admin having to know that info up front.
+const createUser = async (req, res) => {
+    try {
+        const { email, fullName, role } = req.body;
+        if (!email || !fullName) {
+            return res.status(400).json({ error: 'Email and full name are required.' });
+        }
+        if (!isAllowedSignupEmail(email)) {
+            return res.status(403).json({
+                error: `Accounts are limited to ${ALLOWED_SIGNUP_DOMAINS.map(d => '@' + d).join(' and ')} email addresses.`,
+            });
+        }
+        const chosenRole = role || 'user';
+        if (!VALID_ROLES.includes(chosenRole)) {
+            return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(', ')}.` });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const { data: existing } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+        if (existing) {
+            return res.status(409).json({ error: 'An account with this email already exists.' });
+        }
+
+        const tempPassword = generateTempPassword();
+        const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+        const { data, error } = await supabaseAdmin
+            .from('users')
+            .insert({
+                email: normalizedEmail,
+                username: normalizedEmail,
+                full_name: fullName.trim(),
+                password_hash: passwordHash,
+                role: chosenRole,
+                is_active: true,
+                email_verified: true,
+            })
+            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at')
+            .single();
+
+        if (error) throw error;
+
+        // Best-effort: the account is already created and usable even if
+        // the email fails to send, so don't roll anything back -- just
+        // tell the admin so they can pass the password along another way.
+        let emailSent = true;
+        try {
+            await sendWelcomeEmail(normalizedEmail, fullName.trim(), tempPassword);
+        } catch (emailErr) {
+            emailSent = false;
+            console.error('sendWelcomeEmail failed:', emailErr.message);
+        }
+
+        res.status(201).json({ user: data, tempPassword, emailSent });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export { listUsers, updateUser, createUser };

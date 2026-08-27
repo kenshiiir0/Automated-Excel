@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '../../Icon.jsx';
+import Modal from '../../Modal.jsx';
 import { useAuth } from '../../authContext.jsx';
 
 const ROLE_META = {
@@ -26,6 +27,125 @@ function fmtDate(v) {
     }
 }
 
+const EMPTY_NEW_USER = { fullName: '', email: '', role: 'user' };
+
+// Lightweight account creation: a super_admin only picks who this is and
+// what tier they start at. No password, no phone, no employee linkage --
+// the new person handles the rest of their own profile once they log in
+// with the temporary password we email them (self-signup, by contrast,
+// requires the person filling in a password themselves + an OTP check).
+function CreateAccountModal({ onClose, onCreated, showToast }) {
+    const [form, setForm] = useState(EMPTY_NEW_USER);
+    const [submitting, setSubmitting] = useState(false);
+    const [result, setResult] = useState(null);
+
+    const handleChange = (key) => (e) => setForm(prev => ({ ...prev, [key]: e.target.value }));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: form.email.trim(), fullName: form.fullName.trim(), role: form.role }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Could not create account.');
+            onCreated(data.user);
+            setResult(data);
+            if (data.emailSent) {
+                showToast('success', 'Account created. Welcome email sent.');
+            } else {
+                showToast('error', 'Account created, but the welcome email failed to send.');
+            }
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // After a successful create, swap the form for a confirmation screen
+    // showing the temp password -- this is the fallback if the email
+    // never arrives, so the admin isn't stuck.
+    if (result) {
+        return (
+            <Modal title="Account Created" onClose={onClose} maxWidth={480}>
+                <p style={{ fontSize: 13.5, color: '#4a5568', marginTop: 0 }}>
+                    {result.user.full_name}'s account is active. {result.emailSent
+                        ? 'A welcome email with sign-in details was sent to ' + result.user.email + '.'
+                        : "The welcome email couldn't be sent -- share these details with them directly:"}
+                </p>
+                {!result.emailSent && (
+                    <div className="emp-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                        <div className="emp-form-group">
+                            <label className="emp-form-label">Username</label>
+                            <div className="emp-form-input" style={{ background: '#f8fafc' }}>{result.user.email}</div>
+                        </div>
+                        <div className="emp-form-group">
+                            <label className="emp-form-label">Temporary Password</label>
+                            <div className="emp-form-input" style={{ background: '#f8fafc', fontWeight: 700, letterSpacing: 0.5 }}>
+                                {result.tempPassword}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                    <button type="button" className="btn-primary" onClick={onClose}>Done</button>
+                </div>
+            </Modal>
+        );
+    }
+
+    return (
+        <Modal title="Create Account" onClose={onClose} maxWidth={480}>
+            <form onSubmit={handleSubmit}>
+                <div className="emp-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className="emp-form-group">
+                        <label className="emp-form-label">Full Name</label>
+                        <input
+                            className="emp-form-input"
+                            type="text"
+                            value={form.fullName}
+                            onChange={handleChange('fullName')}
+                            required
+                        />
+                    </div>
+                    <div className="emp-form-group">
+                        <label className="emp-form-label">Email</label>
+                        <input
+                            className="emp-form-input"
+                            type="email"
+                            value={form.email}
+                            onChange={handleChange('email')}
+                            required
+                        />
+                    </div>
+                    <div className="emp-form-group">
+                        <label className="emp-form-label">Role</label>
+                        <select className="emp-form-input" value={form.role} onChange={handleChange('role')}>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <p style={{ fontSize: 12, color: '#a0aec0', marginTop: 4 }}>
+                    A temporary password is generated automatically and emailed to them. They can update their
+                    name, phone, and password later from their own Profile page.
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
+                    <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+                    <button type="submit" className="btn-primary" disabled={submitting}>
+                        {submitting ? 'Creating…' : 'Create Account'}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
 export default function UserManagement() {
     const { user: sessionUser } = useAuth();
     const [users, setUsers] = useState([]);
@@ -33,6 +153,7 @@ export default function UserManagement() {
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
     const [savingId, setSavingId] = useState(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const isSuperAdmin = sessionUser?.role === 'super_admin';
 
@@ -109,11 +230,24 @@ export default function UserManagement() {
                     <h1 className="page-title">Manage Users</h1>
                     <p className="page-subtitle">
                         {isSuperAdmin
-                            ? 'Assign roles and control who can sign in.'
+                            ? 'Assign roles, control who can sign in, and create new accounts.'
                             : 'Account list. Only a Super Admin can change roles or status.'}
                     </p>
                 </div>
+                {isSuperAdmin && (
+                    <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                        + Add Account
+                    </button>
+                )}
             </div>
+
+            {showCreateModal && (
+                <CreateAccountModal
+                    onClose={() => setShowCreateModal(false)}
+                    onCreated={(newUser) => setUsers(prev => [...prev, newUser])}
+                    showToast={showToast}
+                />
+            )}
 
             {error && <div className="login-error">Could not load accounts: {error}</div>}
 
