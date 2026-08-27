@@ -45,7 +45,7 @@ function StatusBadge({ status }) {
 
 const EMPTY_FORM = {
   candidate_name: '', position: '', department: '',
-  status: 'Applied', email: '', phone: '',
+  status: 'Applied', email: '', phone: '', recruiter: '',
   previous_company: '', resume_url: '', remarks: ''
 };
 
@@ -61,6 +61,7 @@ export default function RecruitmentTracker() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterDept, setFilterDept] = useState('All');
+  const [filterRecruiter, setFilterRecruiter] = useState('All');
 
   useEffect(() => { fetchCandidates(); }, []);
 
@@ -125,6 +126,19 @@ export default function RecruitmentTracker() {
     return [...new Set(candidates.map(c => c.department).filter(Boolean))].sort();
   }, [candidates]);
 
+  const recruiters = useMemo(() => {
+    return [...new Set(candidates.map(c => c.recruiter).filter(Boolean))].sort();
+  }, [candidates]);
+
+  const recruiterSummary = useMemo(() => {
+    const counts = {};
+    candidates.forEach(c => {
+      const key = c.recruiter || 'Unassigned';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [candidates]);
+
   // Pipeline summary
   const pipelineSummary = useMemo(() => {
     const counts = {};
@@ -158,9 +172,11 @@ export default function RecruitmentTracker() {
         (c.status || '').toLowerCase().includes(q);
       const matchStatus = filterStatus === 'All' || c.status === filterStatus;
       const matchDept = filterDept === 'All' || c.department === filterDept;
-      return matchSearch && matchStatus && matchDept;
+      const matchRecruiter = filterRecruiter === 'All' ||
+        (filterRecruiter === 'Unassigned' ? !c.recruiter : c.recruiter === filterRecruiter);
+      return matchSearch && matchStatus && matchDept && matchRecruiter;
     });
-  }, [candidates, search, filterStatus, filterDept]);
+  }, [candidates, search, filterStatus, filterDept, filterRecruiter]);
 
   const field = (label, key, type = 'text', opts = {}) => (
     <div className="emp-form-group">
@@ -239,6 +255,24 @@ export default function RecruitmentTracker() {
         </div>
       )}
 
+      {/* By Recruiter Summary */}
+      {recruiterSummary.length > 0 && (
+        <div className="pipeline-summary-bar recruiter-summary-bar">
+          <span className="recruiter-summary-label">By Recruiter:</span>
+          {recruiterSummary.map(([name, count]) => (
+            <button
+              key={name}
+              className={`pipeline-status-pill recruiter-pill ${filterRecruiter === name ? 'active' : ''}`}
+              onClick={() => setFilterRecruiter(filterRecruiter === name ? 'All' : name)}
+              title={`Filter: ${name}`}
+            >
+              <span className="pipeline-pill-label">{name}</span>
+              <span className="pipeline-pill-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Add Candidate Form */}
       {showForm && (
         <div className="form-card">
@@ -248,6 +282,7 @@ export default function RecruitmentTracker() {
               {field('Candidate Name', 'candidate_name', 'text', { required: true })}
               {field('Position Applied', 'position', 'text', { required: true })}
               {field('Department', 'department', 'text')}
+              {field('Recruiter', 'recruiter', 'text', { placeholder: 'e.g. Sherwin Villarosa' })}
               {field('Email', 'email', 'email')}
               {field('Phone', 'phone', 'tel')}
               {field('Previous Company', 'previous_company', 'text')}
@@ -287,6 +322,11 @@ export default function RecruitmentTracker() {
           <option value="All">All Departments</option>
           {departments.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
+        <select className="filter-select" value={filterRecruiter} onChange={e => setFilterRecruiter(e.target.value)}>
+          <option value="All">All Recruiters</option>
+          {recruiters.map(r => <option key={r} value={r}>{r}</option>)}
+          <option value="Unassigned">Unassigned</option>
+        </select>
         <span className="results-count">{filtered.length} of {candidates.length}</span>
       </div>
 
@@ -300,6 +340,7 @@ export default function RecruitmentTracker() {
                 <th>Candidate</th>
                 <th>Position</th>
                 <th>Department</th>
+                <th>Recruiter</th>
                 <th>Previous Company</th>
                 <th>Status</th>
                 <th>Remarks</th>
@@ -321,6 +362,7 @@ export default function RecruitmentTracker() {
                   </td>
                   <td><div className="skeleton skeleton-text" style={{ width: '130px', height: '13px' }}></div></td>
                   <td><div className="skeleton skeleton-text" style={{ width: '100px', height: '13px' }}></div></td>
+                  <td><div className="skeleton skeleton-text" style={{ width: '100px', height: '13px' }}></div></td>
                   <td><div className="skeleton skeleton-text" style={{ width: '110px', height: '13px' }}></div></td>
                   <td><div className="skeleton" style={{ width: '110px', height: '26px', borderRadius: '8px' }}></div></td>
                   <td><div className="skeleton skeleton-text" style={{ width: '150px', height: '12px' }}></div></td>
@@ -339,6 +381,7 @@ export default function RecruitmentTracker() {
                 <th>Candidate</th>
                 <th>Position</th>
                 <th>Department</th>
+                <th>Recruiter</th>
                 <th>Previous Company</th>
                 <th>Status</th>
                 <th>Remarks</th>
@@ -348,7 +391,7 @@ export default function RecruitmentTracker() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                     No candidates match your search.
                   </td>
                 </tr>
@@ -368,6 +411,7 @@ export default function RecruitmentTracker() {
                   </td>
                   <td style={{ fontSize: 13, color: '#4a5568', fontWeight: 500 }}>{c.position || '—'}</td>
                   <td style={{ fontSize: 12, color: '#718096' }}>{c.department || '—'}</td>
+                  <td style={{ fontSize: 12, color: '#4a5568', fontWeight: 500 }}>{c.recruiter || <span style={{ color: '#cbd5e0', fontStyle: 'italic' }}>Unassigned</span>}</td>
                   <td style={{ fontSize: 12, color: '#718096' }}>{c.previous_company || '—'}</td>
                   <td>
                     <select
