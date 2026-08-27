@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import dashboardRoutes from './routes/dashboard.js';
 import employeeRoutes from './routes/employees.js';
@@ -12,14 +13,32 @@ import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import usersRoutes from './routes/users.js';
 import { requireAuth } from './lib/requireAuth.js';
+import { apiLimiter } from './lib/rateLimiters.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Vercel sits in front of this app as a reverse proxy, so req.ip would
+// otherwise resolve to Vercel's proxy IP for every request -- collapsing
+// every visitor into one shared rate-limit bucket (and letting one bad
+// actor exhaust it for everyone). Trusting exactly one hop reads the real
+// client IP from X-Forwarded-For instead.
+app.set('trust proxy', 1);
+
+// Security headers (CSP, no-sniff, frame-ancestors, HSTS, etc.). API-only
+// service, so the default CSP (meant for HTML pages) is turned off here --
+// the actual frontend HTML is served as static files by Vercel, not by
+// this server, and a strict API-shaped CSP would just get in the way.
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
+
+// Blanket rate limit across every /api/* route -- a coarse safety net so
+// no single client can hammer the server or run up Supabase usage. The
+// login and OTP routes have their own tighter limits on top of this one.
+app.use('/api', apiLimiter);
 
 // Auth routes: POST /api/auth/login is intentionally open (that's how you
 // get a token in the first place); GET /api/auth/me requires a token.
