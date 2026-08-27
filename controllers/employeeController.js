@@ -18,6 +18,19 @@ function withRoleFilter(req, data) {
     return Array.isArray(data) ? data.map(stripSensitiveFields) : stripSensitiveFields(data);
 }
 
+// Only super_admin may set/change salary, government IDs, or bank details.
+// admin keeps full write access to everything else (name, contact info,
+// department, position, dates, status, etc.) -- this mirrors the same
+// SENSITIVE_FIELDS list used to hide these fields on reads, but one tier
+// stricter on writes, since a bad/malicious write to salary or bank_account
+// is more damaging than merely being able to view it.
+function stripSensitiveFieldsFromWrite(req, body) {
+    if (req.user?.role === 'super_admin') return { ...body };
+    const clean = { ...body };
+    for (const field of SENSITIVE_FIELDS) delete clean[field];
+    return clean;
+}
+
 const getAllEmployees = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
@@ -51,9 +64,11 @@ const createEmployee = async (req, res) => {
     try {
         const { emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary } = req.body;
 
+        const payload = stripSensitiveFieldsFromWrite(req, { emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary });
+
         const { data, error } = await supabaseAdmin
             .from('employees')
-            .insert([{ emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary }])
+            .insert([payload])
             .select();
 
         if (error) throw error;
@@ -65,9 +80,11 @@ const createEmployee = async (req, res) => {
 
 const updateEmployee = async (req, res) => {
     try {
+        const updates = stripSensitiveFieldsFromWrite(req, req.body);
+
         const { data, error } = await supabaseAdmin
             .from('employees')
-            .update(req.body)
+            .update(updates)
             .eq('id', req.params.id)
             .select();
 
