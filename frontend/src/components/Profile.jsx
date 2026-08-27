@@ -16,6 +16,7 @@ function fmtDate(v) {
 export default function Profile() {
     const { user: sessionUser, setUserFromProfile } = useAuth();
     const [profile, setProfile] = useState(null);
+    const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
@@ -33,6 +34,7 @@ export default function Profile() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not load profile.');
             setProfile(data.user);
+            setEmployee(data.employee || null);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -65,12 +67,16 @@ export default function Profile() {
             {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
 
             <div className="profile-grid">
-                <ProfileSummaryCard profile={profile} />
+                <div className="profile-side">
+                    <ProfileSummaryCard profile={profile} />
+                    <WorkInfoCard employee={employee} />
+                </div>
                 <div className="profile-forms">
                     <EditNameCard
                         profile={profile}
-                        onSaved={(updated) => {
+                        onSaved={(updated, updatedEmployee) => {
                             setProfile(updated);
+                            if (updatedEmployee !== undefined) setEmployee(updatedEmployee);
                             if (setUserFromProfile) setUserFromProfile(updated);
                             showToast('success', 'Name updated.');
                         }}
@@ -119,6 +125,66 @@ function ProfileSummaryCard({ profile }) {
     );
 }
 
+const WORK_INFO_ROWS = [
+    ['position', 'Position'],
+    ['department', 'Department'],
+    ['position_category', 'Category'],
+    ['employment_status', 'Employment Status'],
+    ['employment_classification', 'Classification'],
+    ['work_arrangement', 'Work Arrangement'],
+    ['territory', 'Territory'],
+    ['reporting_to', 'Reports To'],
+    ['phone', 'Phone'],
+];
+
+function fmtShortDate(v) {
+    if (!v) return null;
+    try {
+        return new Date(v).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch {
+        return v;
+    }
+}
+
+function WorkInfoCard({ employee }) {
+    if (!employee) {
+        return (
+            <div className="profile-summary-card profile-workinfo-card">
+                <div className="profile-form-title">Work Information</div>
+                <p className="profile-workinfo-empty">
+                    No matching employee record found for this account's email. Work details will
+                    appear here once this login is linked to an employee.
+                </p>
+            </div>
+        );
+    }
+
+    const hireDate = fmtShortDate(employee.hire_date);
+
+    return (
+        <div className="profile-summary-card profile-workinfo-card">
+            <div className="profile-form-title">Work Information</div>
+            {employee.emp_id && <div className="profile-workinfo-empid">ID: {employee.emp_id}</div>}
+            <div className="profile-workinfo-rows">
+                {WORK_INFO_ROWS.map(([key, label]) => (
+                    employee[key] ? (
+                        <div className="profile-workinfo-row" key={key}>
+                            <span className="profile-workinfo-label">{label}</span>
+                            <span className="profile-workinfo-value">{employee[key]}</span>
+                        </div>
+                    ) : null
+                ))}
+                {hireDate && (
+                    <div className="profile-workinfo-row">
+                        <span className="profile-workinfo-label">Hire Date</span>
+                        <span className="profile-workinfo-value">{hireDate}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function EditNameCard({ profile, onSaved, onError }) {
     const [fullName, setFullName] = useState(profile.full_name || '');
     const [submitting, setSubmitting] = useState(false);
@@ -137,7 +203,7 @@ function EditNameCard({ profile, onSaved, onError }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not update name.');
-            onSaved(data.user);
+            onSaved(data.user, data.employee);
         } catch (err) {
             onError(err.message);
         } finally {
