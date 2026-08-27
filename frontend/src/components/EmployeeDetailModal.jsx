@@ -225,14 +225,11 @@ export default function EmployeeDetailModal({ employeeId, onClose }) {
             </section>
 
             {/* Section 3 — Sensitive info (collapsed by default) */}
-            {/* Pre-deployment safeguard: salary, bank, government ID, personal
-                contact, and family/emergency fields are now withheld server-side
-                (see SENSITIVE_FIELDS in employeeController.js) because this
-                system has no login/auth layer yet and is being deployed
-                publicly. This toggle will show "Nothing to show yet" for those
-                fields until real authentication is built — at which point the
-                server-side filtering is removed and these values return on
-                their own, no frontend change needed. */}
+            {/* Collapsed by default purely as a privacy-conscious UI choice --
+                salary, bank, government ID, and emergency-contact data is
+                already included in the API response for any authenticated
+                request (see NOTE in employeeController.js). This toggle just
+                keeps it out of view until someone deliberately expands it. */}
             <button
               className={`emp-sensitive-toggle${showSensitive ? ' open' : ''}`}
               onClick={() => setShowSensitive(s => !s)}

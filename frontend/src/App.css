@@ -540,7 +540,7 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1D9FDA, #61A644);
+  background: linear-gradient(135deg, #1EA0DA, #0F5777);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -595,7 +595,7 @@ body {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1D9FDA, #61A644);
+  background: linear-gradient(135deg, #1EA0DA, #0F5777);
   color: #fff;
   font-size: 26px;
   font-weight: 800;
@@ -741,7 +741,7 @@ body {
 }
 
 .page-kpi-card.navy  { background: linear-gradient(135deg, #0F5777, #12678D); }
-.page-kpi-card.teal  { background: linear-gradient(135deg, #1D9FDA, #61A644); }
+.page-kpi-card.teal  { background: linear-gradient(135deg, #1D9FDA, #12678D); }
 .page-kpi-card.orange{ background: linear-gradient(135deg, #ed7d31, #f59a50); }
 .page-kpi-card.green { background: linear-gradient(135deg, #2e7d32, #43a047); }
 .page-kpi-card.red   { background: linear-gradient(135deg, #c0504d, #e57373); }
@@ -1038,7 +1038,7 @@ body {
 }
 
 .avatar.teal-avatar {
-  background: linear-gradient(135deg, #1D9FDA, #61A644);
+  background: linear-gradient(135deg, #1EA0DA, #0F5777);
 }
 
 /* =====================================================
@@ -1061,7 +1061,7 @@ body {
    ===================================================== */
 
 .btn-primary {
-  background: linear-gradient(135deg, #1D9FDA, #61A644);
+  background: linear-gradient(135deg, #1EA0DA, #0F5777);
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -1297,7 +1297,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.toast-success { background: linear-gradient(135deg, #1D9FDA, #61A644); }
+.toast-success { background: linear-gradient(135deg, #1D9FDA, #178a4f); }
 .toast-error   { background: linear-gradient(135deg, #c0504d, #e57373); }
 .toast-info    { background: linear-gradient(135deg, #0F5777, #12678D); }
 
@@ -1987,7 +1987,7 @@ body {
 .login-blob-1 {
   width: 420px;
   height: 420px;
-  background: #61A644;
+  background: #1EA0DA;
   top: -140px;
   left: -120px;
   animation-delay: 0s;
@@ -1996,19 +1996,19 @@ body {
 .login-blob-2 {
   width: 340px;
   height: 340px;
-  background: #1EA0DA;
+  background: #12678D;
   bottom: -120px;
   right: -80px;
   animation-delay: -5s;
 }
 
 .login-blob-3 {
-  width: 260px;
-  height: 260px;
-  background: #ffffff;
-  top: 40%;
-  right: 10%;
-  opacity: 0.12;
+  width: 200px;
+  height: 200px;
+  background: #61A644;
+  top: 42%;
+  right: 8%;
+  opacity: 0.22;
   animation-delay: -10s;
 }
 

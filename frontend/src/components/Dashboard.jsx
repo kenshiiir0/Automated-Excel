@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [sepReasons, setSepReasons] = useState([]);
   const [sepByDept, setSepByDept] = useState([]);
   const [pipeline, setPipeline] = useState([]);
-  const [mailData, setMailData] = useState({ summary: { zoho: 0, gmail: 0, na: 0, total: 0 }, distribution: [] });
+  const [mailData, setMailData] = useState({ summary: { zoho: 0, na: 0, total: 0 }, distribution: [] });
   const [upcomingActions, setUpcomingActions] = useState({ upForRegularization: [], upcomingAnniversaries: [] });
 
   const [loading, setLoading] = useState(true);
@@ -102,7 +102,7 @@ export default function Dashboard() {
         safeFetch(`${API_URL}/dashboard/separation-reasons`),
         safeFetch(`${API_URL}/dashboard/separations-by-dept`),
         safeFetch(`${API_URL}/dashboard/recruitment-pipeline`),
-        safeFetch(`${API_URL}/dashboard/email-providers`).catch(() => ({ summary: { zoho: 0, gmail: 0, na: 0, total: 0 }, distribution: [] })),
+        safeFetch(`${API_URL}/dashboard/email-providers`).catch(() => ({ summary: { zoho: 0, na: 0, total: 0 }, distribution: [] })),
         safeFetch(`${API_URL}/dashboard/upcoming-actions`).catch(() => ({ upForRegularization: [], upcomingAnniversaries: [] }))
       ]);
 
@@ -115,26 +115,28 @@ export default function Dashboard() {
       setSepByDept(Array.isArray(sepDeptRes) ? sepDeptRes : []);
       setPipeline(Array.isArray(pipelineRes) ? pipelineRes : []);
 
-      // Safe normalization for Mail Provider Data
-      let normalizedMail = { summary: { zoho: 0, gmail: 0, na: 0, total: 0 }, distribution: [] };
+      // Safe normalization for Mail Provider Data. GetMeds has standardized
+      // on Zoho Mail company-wide, so this no longer tracks Gmail as its
+      // own category -- any legacy Gmail rows still in email_directory
+      // (from before the switch) fall into "Other / Unspecified" like any
+      // other non-Zoho provider, rather than getting their own KPI card.
+      let normalizedMail = { summary: { zoho: 0, na: 0, total: 0 }, distribution: [] };
       if (mailRes) {
         if (mailRes.summary && Array.isArray(mailRes.distribution)) {
           normalizedMail = mailRes;
         } else if (Array.isArray(mailRes)) {
-          let zoho = 0, gmail = 0, na = 0, other = 0;
+          let zoho = 0, na = 0, other = 0;
           mailRes.forEach(item => {
             const p = (item.mail_provider || item.provider || '').toUpperCase();
             if (p.includes('ZOHO')) zoho += (item.count || 1);
-            else if (p.includes('GMAIL')) gmail += (item.count || 1);
             else if (p.includes('N/A') || !p) na += (item.count || 1);
             else other += (item.count || 1);
           });
-          const total = zoho + gmail + na + other;
+          const total = zoho + na + other;
           normalizedMail = {
-            summary: { zoho, gmail, na, other, total },
+            summary: { zoho, na, other, total },
             distribution: [
               { provider: 'Zoho', count: zoho, color: '#1D9FDA' },
-              { provider: 'Gmail', count: gmail, color: '#ED7D31' },
               { provider: 'N/A', count: na, color: '#5B7290' }
             ]
           };
@@ -744,12 +746,6 @@ export default function Dashboard() {
               <div className="kpi-subtitle">company mail directory</div>
             </div>
 
-            <div className="kpi-card bg-orange">
-              <div className="kpi-title">EMPLOYEES ON GMAIL</div>
-              <div className="kpi-value">{mailData?.summary?.gmail ?? 0}</div>
-              <div className="kpi-subtitle">company mail directory</div>
-            </div>
-
             <div className="kpi-card" style={{ background: '#5B7290' }}>
               <div className="kpi-title">EMPLOYEES N/A</div>
               <div className="kpi-value">{mailData?.summary?.na ?? 0}</div>
@@ -759,7 +755,7 @@ export default function Dashboard() {
             <div className="kpi-card bg-navy">
               <div className="kpi-title">TOTAL IN MAIL DIRECTORY</div>
               <div className="kpi-value">{mailData?.summary?.total ?? 0}</div>
-              <div className="kpi-subtitle">Zoho + Gmail + N/A + other</div>
+              <div className="kpi-subtitle">Zoho + N/A + other</div>
             </div>
           </div>
 
