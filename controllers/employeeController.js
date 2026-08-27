@@ -1,12 +1,22 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 
-// NOTE: salary/bank/government-ID/personal-contact/emergency-contact fields
-// used to be stripped from these responses as a stopgap for public
-// deployment before real login existed. Now that every route using this
-// controller sits behind requireAuth (server.js), that stopgap has been
-// removed -- the login wall is the real protection, so the full record is
-// returned again to any authenticated request, same as before the stopgap
-// was ever added.
+// Fields hidden from 'user'-role accounts (read-only accounts). Everyone
+// else (admin, super_admin) sees the full record -- this only trims the
+// response for the lowest tier, same set called out on the profile page's
+// own Work Information card (salary, government IDs, bank account).
+const SENSITIVE_FIELDS = ['salary', 'sss_number', 'philhealth_number', 'hdmf_number', 'tin_number', 'bank_name', 'bank_account'];
+
+function stripSensitiveFields(record) {
+    if (!record) return record;
+    const clean = { ...record };
+    for (const field of SENSITIVE_FIELDS) delete clean[field];
+    return clean;
+}
+
+function withRoleFilter(req, data) {
+    if (req.user?.role !== 'user') return data;
+    return Array.isArray(data) ? data.map(stripSensitiveFields) : stripSensitiveFields(data);
+}
 
 const getAllEmployees = async (req, res) => {
     try {
@@ -16,7 +26,7 @@ const getAllEmployees = async (req, res) => {
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        res.json(data);
+        res.json(withRoleFilter(req, data));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -31,7 +41,7 @@ const getEmployeeById = async (req, res) => {
             .single();
 
         if (error) throw error;
-        res.json(data);
+        res.json(withRoleFilter(req, data));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

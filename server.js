@@ -10,6 +10,7 @@ import internRoutes from './routes/interns.js';
 import zohoRoutes from './routes/zoho.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
+import usersRoutes from './routes/users.js';
 import { requireAuth } from './lib/requireAuth.js';
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use('/api/leaves', requireAuth, leaveRoutes);
 app.use('/api/email', requireAuth, emailRoutes);
 app.use('/api/interns', requireAuth, internRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/users', requireAuth, usersRoutes);
 
 // /api/zoho/* is deliberately NOT behind requireAuth -- it has its own,
 // separate API-key check (see lib/apiKeyAuth.js) because it's meant to be

@@ -16,6 +16,14 @@ const STORAGE_KEY = 'hr-sidebar-collapsed';
 export default function Navigation() {
   const { user, logout, loggingOut } = useAuth();
 
+  // Manage Users is only relevant to accounts that can actually see it --
+  // admin can view the account list (read-only), super_admin can also
+  // edit roles/status. A plain 'user' account never sees this item.
+  const canSeeUserManagement = user?.role === 'admin' || user?.role === 'super_admin';
+  const navItems = canSeeUserManagement
+    ? [...NAV_ITEMS, { to: '/users', label: 'Manage Users', icon: 'shield' }]
+    : NAV_ITEMS;
+
   // "collapsed" is the user's pinned preference, remembered across visits.
   // Starts collapsed by default.
   const [collapsed, setCollapsed] = useState(() => {
@@ -72,7 +80,7 @@ export default function Navigation() {
       </div>
 
       <div className="sidebar-links">
-        {NAV_ITEMS.map(item => (
+        {navItems.map(item => (
           <NavLink
             key={item.to}
             to={item.to}

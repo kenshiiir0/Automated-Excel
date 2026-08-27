@@ -54,7 +54,11 @@ const requestOtp = async (req, res) => {
                     username: normalizedEmail,
                     full_name: fullName.trim(),
                     password_hash: passwordHash,
-                    role: 'admin',
+                    // Self-signup grants read-only access by default now that
+                    // real role tiers exist -- a super_admin promotes an
+                    // account to 'admin' afterward via Manage Users, rather
+                    // than every new signup getting full write access.
+                    role: 'user',
                     is_active: false,
                     email_verified: false,
                     otp_code: otpCode,
