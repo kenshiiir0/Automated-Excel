@@ -1,8 +1,33 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = 'hr_auth_token';
 const USER_KEY = 'hr_auth_user';
+const LAST_ACTIVE_KEY = 'hr_last_active_at';
+
+// How long a session survives with the tab closed (or the app otherwise
+// not visible) before it's treated as expired. Session itself isn't
+// touched on the server -- the JWT is still valid for its full 12h --
+// this just makes the app forget the stored token client-side and send
+// the person back to the login screen after enough idle/closed time has
+// passed, which is what "logs out on tab close" means in practice for a
+// stateless-token setup like this one.
+const CLOSED_TAB_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+// True if more time than the timeout has passed since we last saw this
+// tab active. No stamp at all (first-ever visit, or storage was cleared)
+// counts as "not expired" -- there's nothing to compare against, and
+// login() will set a fresh stamp anyway.
+function isSessionExpiredByInactivity() {
+    const lastActive = localStorage.getItem(LAST_ACTIVE_KEY);
+    if (!lastActive) return false;
+    const elapsed = Date.now() - Number(lastActive);
+    return elapsed > CLOSED_TAB_TIMEOUT_MS;
+}
+
+function stampLastActive() {
+    localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
+}
 
 // Wraps the browser's own fetch so every API call this app makes
 // automatically carries the login token, without having to edit every
@@ -43,6 +68,17 @@ function installAuthFetch(onUnauthorized) {
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
         try {
+            // If the tab (or the whole browser) was closed for longer than
+            // the timeout, treat the stored session as gone before it's
+            // ever read into state -- this is what makes the app land on
+            // the login screen on reopen instead of silently staying
+            // signed in on an old token.
+            if (isSessionExpiredByInactivity()) {
+                localStorage.removeItem(TOKEN_KEY);
+                localStorage.removeItem(USER_KEY);
+                localStorage.removeItem(LAST_ACTIVE_KEY);
+                return null;
+            }
             const raw = localStorage.getItem(USER_KEY);
             return raw ? JSON.parse(raw) : null;
         } catch {
@@ -58,6 +94,7 @@ export function AuthProvider({ children }) {
     const logout = useCallback(() => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(LAST_ACTIVE_KEY);
         setUser(null);
         setLoggingOut(false);
     }, []);
@@ -78,6 +115,35 @@ export function AuthProvider({ children }) {
     // along. Calling it directly in the component body avoids that race.
     installAuthFetch(logout);
 
+    // Keeps LAST_ACTIVE_KEY fresh while this tab is open and visible, so
+    // "time since last active" only starts counting once the tab is
+    // actually closed/backgrounded, not from the moment it was opened.
+    // Three triggers cover the real ways a tab stops being "active":
+    // a periodic tick (in case the other two are missed), the tab losing
+    // focus/visibility, and the tab/window actually closing.
+    useEffect(() => {
+        if (!user) return undefined;
+
+        stampLastActive();
+        const intervalId = setInterval(stampLastActive, 60 * 1000);
+
+        const onVisibilityOrUnload = () => {
+            if (document.visibilityState === 'hidden' || document.visibilityState === undefined) {
+                stampLastActive();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityOrUnload);
+        window.addEventListener('beforeunload', stampLastActive);
+        window.addEventListener('pagehide', stampLastActive);
+
+        return () => {
+            clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', onVisibilityOrUnload);
+            window.removeEventListener('beforeunload', stampLastActive);
+            window.removeEventListener('pagehide', stampLastActive);
+        };
+    }, [user]);
+
     const login = useCallback(async (username, password) => {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -90,6 +156,7 @@ export function AuthProvider({ children }) {
         }
         localStorage.setItem(TOKEN_KEY, data.token);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        stampLastActive();
         setUser(data.user);
     }, []);
 
