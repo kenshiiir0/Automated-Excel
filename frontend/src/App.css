@@ -35,6 +35,14 @@ body {
   font-style: italic;
 }
 
+.dashboard-header p.dashboard-greeting {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 6px;
+}
+
 /* Section Title */
 .section-title {
   font-size: 13px;

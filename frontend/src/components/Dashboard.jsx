@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import Icon from '../../Icon.jsx';
+import { useAuth } from '../../authContext.jsx';
 
 const API_URL = '/api';
 
@@ -16,6 +17,7 @@ const getStatusColor = (status = '') => {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalEmployees: 0,
     regularCount: 0,
@@ -450,6 +452,17 @@ export default function Dashboard() {
   }, [loading, activeByDept, activeStatus, genderDist, monthlyTrend, sepReasons, sepByDept, pipeline, mailData]);
 
   const currentDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // Simple time-of-day greeting -- Manila is the org's home timezone, so
+  // the greeting is based on local Philippine time regardless of where
+  // the viewer's browser/device clock happens to be set.
+  const greetingWord = (() => {
+    const hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Manila' }).format(new Date()));
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
+  const greetingName = user?.full_name || user?.username || '';
   const hasStatusData = activeStatus && activeStatus.some(s => s.count > 0);
   const hasGenderData = genderDist && genderDist.some(g => g.count > 0);
   const hasDeptData = activeByDept && activeByDept.length > 0;
@@ -466,7 +479,8 @@ export default function Dashboard() {
     <div className="dashboard-container">
       <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1>GetMeds Philippines, Inc. / 2MG Incorporated — HR Recruitment & Attrition Dashboard</h1>
+          <h1>HR Employee Tracker</h1>
+          {greetingName && <p className="dashboard-greeting">{greetingWord}, {greetingName}!</p>}
           <p>Source: Active Employees / Resigned Inactive / Recruitment Update | Generated {currentDateStr}</p>
         </div>
         <button
