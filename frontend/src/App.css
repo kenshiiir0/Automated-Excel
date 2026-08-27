@@ -2078,6 +2078,21 @@ button.profile-status-pill {
   padding: 8px 10px;
 }
 
+.emp-detail-inline-link-btn {
+  background: none;
+  border: none;
+  color: #1D9FDA;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0 0;
+  font-size: 11.5px;
+  text-align: left;
+}
+
+.emp-detail-inline-link-btn:hover {
+  text-decoration: underline;
+}
+
 /* Sections inside modal */
 .emp-detail-body {
   padding: 0 24px 24px;

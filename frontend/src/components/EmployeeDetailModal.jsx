@@ -94,6 +94,79 @@ function EditableField({ label, name, value, editing, onChange, type = 'text', o
   );
 }
 
+// Reason-for-leaving field: a preset dropdown (built from what's actually
+// used in real records, see SEPARATION_REASONS above) that falls through
+// to a free-text input when "Other" is picked, or when the stored value
+// doesn't match any preset (e.g. old free-text data from before this
+// dropdown existed). Only rendered at all when employment status isn't
+// Active -- see the call site -- since a reason for leaving doesn't make
+// sense for someone still employed.
+function SeparationReasonField({ value, editing, onChange }) {
+  // Hook called unconditionally, before any early return -- React requires
+  // hooks to run in the same order on every render, so this can't sit
+  // after the `if (!editing)` branch below even though its value is only
+  // ever used in the editing branch.
+  const [usingOther, setUsingOther] = useState(false);
+
+  // Re-derive whenever a fresh editing session starts (not on every
+  // keystroke -- only on the editing:false -> true transition), so
+  // cancelling and re-entering edit mode on the same employee shows the
+  // dropdown/free-text choice that actually matches the current value,
+  // instead of remembering whatever was left over from a previous
+  // editing session in this same modal instance.
+  useEffect(() => {
+    if (editing) {
+      const isPreset = value === '' || SEPARATION_REASONS.slice(0, -1).includes(value);
+      setUsingOther(!isPreset);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+
+  if (!editing) {
+    return <Field label="Reason for Leaving" value={fmt(value)} />;
+  }
+
+  return (
+    <div className="emp-form-group emp-detail-edit-field">
+      <label className="emp-form-label">Reason for Leaving</label>
+      {usingOther ? (
+        <input
+          className="emp-form-input"
+          type="text"
+          placeholder="Enter reason"
+          value={value ?? ''}
+          onChange={e => onChange('separation_reason', e.target.value)}
+        />
+      ) : (
+        <select
+          className="emp-form-input"
+          value={value ?? ''}
+          onChange={e => {
+            if (e.target.value === 'Other') {
+              setUsingOther(true);
+              onChange('separation_reason', '');
+            } else {
+              onChange('separation_reason', e.target.value);
+            }
+          }}
+        >
+          <option value="">—</option>
+          {SEPARATION_REASONS.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      )}
+      {usingOther && (
+        <button
+          type="button"
+          className="emp-detail-inline-link-btn"
+          onClick={() => { setUsingOther(false); onChange('separation_reason', ''); }}
+        >
+          Choose from list instead
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Clickable contact field: renders a mailto:/tel: link that opens the
 // viewer's own email client or phone dialer, pre-addressed to this person.
 // This is a real, working action today -- not a stub -- since it relies on
@@ -147,7 +220,14 @@ const EDITABLE_FIELDS = [
   'philhealth_number', 'hdmf_number', 'tin_number', 'date_of_birth', 'gender',
   'marital_status', 'citizenship', 'complete_address', 'emergency_contact_person',
   'relationship', 'emergency_contact_details', 'company_issued_no', 'issued_equipment',
+  'separation_reason', 'exit_date',
 ];
+
+// Preset reason options, drawn from what's actually used across existing
+// records (see import_data/employees_import.csv) so the dropdown matches
+// real historical data rather than an invented category list. "Other"
+// falls through to a free-text input for anything that doesn't fit.
+const SEPARATION_REASONS = ['Resigned', 'Immediate Resignation', 'AWOL', 'End of Contract', 'Terminated', 'Other'];
 
 function buildFormData(emp) {
   const data = {};
@@ -233,6 +313,16 @@ export default function EmployeeDetailModal({ employeeId, onClose, onDeleted, on
       if (payload.regularization_date === '') payload.regularization_date = null;
       if (payload.date_of_birth === '') payload.date_of_birth = null;
       if (payload.salary === '') payload.salary = null;
+      if (payload.exit_date === '') payload.exit_date = null;
+      // A reason for leaving only makes sense once someone is actually
+      // inactive/resigned -- if the status gets changed back to Active
+      // (or was already Active), clear out any stale reason/exit date
+      // rather than leaving old separation data attached to an active
+      // employee.
+      if (payload.employment_status === 'Active') {
+        payload.separation_reason = null;
+        payload.exit_date = null;
+      }
 
       const res = await fetch(`/api/employees/${employeeId}`, {
         method: 'PUT',
@@ -389,6 +479,18 @@ export default function EmployeeDetailModal({ employeeId, onClose, onDeleted, on
                   label="Employment Status" name="employment_status" value={f('employment_status')}
                   editing={editing} onChange={handleFieldChange} type="select" options={['Active', 'Inactive', 'Resigned']}
                 />
+                {/* Only relevant once someone is actually leaving -- hidden
+                    entirely for Active employees rather than shown-but-empty,
+                    since a reason/date for leaving doesn't apply yet. Checks
+                    the live formData while editing so picking a non-Active
+                    status reveals these fields immediately, without needing
+                    to save first. */}
+                {(editing ? formData.employment_status : emp.employment_status) !== 'Active' && (
+                  <>
+                    <SeparationReasonField value={f('separation_reason')} editing={editing} onChange={handleFieldChange} />
+                    <EditableField label="Exit Date" name="exit_date" value={f('exit_date')} editing={editing} onChange={handleFieldChange} type="date" display={fmtDate(emp.exit_date)} />
+                  </>
+                )}
                 <EditableField label="Date Hired" name="hire_date" value={f('hire_date')} editing={editing} onChange={handleFieldChange} type="date" display={fmtDate(emp.hire_date)} />
                 <EditableField label="Regularization Date" name="regularization_date" value={f('regularization_date')} editing={editing} onChange={handleFieldChange} type="date" display={fmtDate(emp.regularization_date)} />
                 <EditableField
