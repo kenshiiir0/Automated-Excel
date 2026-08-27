@@ -40,7 +40,7 @@ const getProfile = async (req, res) => {
     try {
         const { data: user, error } = await supabaseAdmin
             .from('users')
-            .select('id, username, email, full_name, role, created_at, last_login_at')
+            .select('id, username, email, full_name, phone, role, is_active, email_verified, created_at, last_login_at')
             .eq('id', req.user.id)
             .single();
 
@@ -57,16 +57,19 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        const { fullName } = req.body;
+        const { fullName, phone } = req.body;
         if (!fullName || !fullName.trim()) {
             return res.status(400).json({ error: 'Full name is required.' });
         }
 
+        const updates = { full_name: fullName.trim() };
+        if (phone !== undefined) updates.phone = phone.trim() || null;
+
         const { data: user, error } = await supabaseAdmin
             .from('users')
-            .update({ full_name: fullName.trim() })
+            .update(updates)
             .eq('id', req.user.id)
-            .select('id, username, email, full_name, role, created_at, last_login_at')
+            .select('id, username, email, full_name, phone, role, is_active, email_verified, created_at, last_login_at')
             .single();
 
         if (error) throw error;
