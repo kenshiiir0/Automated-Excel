@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 import { MEMO_TYPES, getMemoTypeConfig, renderMemoDocx, TODAY_LONG } from '../lib/disciplinaryMemos.js';
 import { sendDisciplinaryMemoEmail } from '../lib/resend.js';
+import { draftIncidentNarrative } from '../lib/narrativeDrafter.js';
 
 function formatEmployeeName(emp) {
     // "Last, First M." to match the source templates' signature style.
@@ -206,4 +207,27 @@ const listMemos = async (req, res) => {
     }
 };
 
-export { listMemoTypes, previewMemo, sendMemo, listMemos };
+// POST /api/disciplinary-memos/draft-narrative -- takes short bullet
+// facts HR typed and returns an AI-expanded paragraph. Only the memo
+// type, rule text, and the bullet facts themselves are sent to the AI
+// provider -- never the employee's name or any other record data --
+// since this step doesn't need them to produce a good draft, and
+// keeping the request minimal limits what reaches a third party.
+const draftNarrative = async (req, res) => {
+    try {
+        const { memoType, ruleText, bulletFacts } = req.body;
+        if (!memoType || !ruleText || !bulletFacts || !bulletFacts.trim()) {
+            return res.status(400).json({ error: 'Memo type, rule, and bullet facts are required.' });
+        }
+        const narrative = await draftIncidentNarrative({ memoType, ruleText, bulletFacts: bulletFacts.trim() });
+        res.json({ narrative });
+    } catch (err) {
+        if (err.code === 'AI_NOT_CONFIGURED') {
+            return res.status(503).json({ error: err.message });
+        }
+        console.error('AI narrative drafting failed:', err);
+        res.status(500).json({ error: 'Could not draft the narrative. You can type it directly instead.' });
+    }
+};
+
+export { listMemoTypes, previewMemo, sendMemo, listMemos, draftNarrative };

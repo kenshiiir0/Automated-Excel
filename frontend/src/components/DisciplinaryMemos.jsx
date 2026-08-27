@@ -29,7 +29,9 @@ export default function DisciplinaryMemos() {
     const [ruleText, setRuleText] = useState('');
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
+    const [bulletFacts, setBulletFacts] = useState('');
     const [incidentNarrative, setIncidentNarrative] = useState('');
+    const [drafting, setDrafting] = useState(false);
     const [priorWarningNote, setPriorWarningNote] = useState('');
 
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -91,6 +93,29 @@ export default function DisciplinaryMemos() {
         incidentNarrative: incidentNarrative.trim(),
         priorWarningNote: priorWarningNote.trim(),
     });
+
+    const handleDraftNarrative = async () => {
+        if (!ruleText.trim() || !bulletFacts.trim()) {
+            showToast('error', 'Fill in the rule and bullet facts first.');
+            return;
+        }
+        setDrafting(true);
+        try {
+            const res = await fetch('/api/disciplinary-memos/draft-narrative', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memoType, ruleText: ruleText.trim(), bulletFacts: bulletFacts.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Could not draft the narrative.');
+            setIncidentNarrative(data.narrative);
+            showToast('success', 'Draft added below -- review and edit before generating.');
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            setDrafting(false);
+        }
+    };
 
     const handleGeneratePreview = async () => {
         setGenerating(true);
@@ -242,8 +267,26 @@ export default function DisciplinaryMemos() {
                     )}
 
                     <div className="emp-form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label className="emp-form-label">Quick Facts (optional -- for AI drafting)</label>
+                        <p style={{ fontSize: 12, color: '#a0aec0', margin: '0 0 6px' }}>{NARRATIVE_STARTERS[memoType]} Type short bullet-style facts here, then click "AI Draft" to expand them into a formal paragraph below -- you can still edit the result before generating.</p>
+                        <textarea
+                            className="emp-form-input"
+                            rows={3}
+                            style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                            placeholder="e.g. Late 6 times in June 11-25 cutoff; no advance notice given; verbal reminder already given once"
+                            value={bulletFacts}
+                            onChange={e => setBulletFacts(e.target.value)}
+                        />
+                        <div style={{ marginTop: 8 }}>
+                            <button type="button" className="btn-ghost" disabled={drafting || !ruleText.trim() || !bulletFacts.trim()} onClick={handleDraftNarrative}>
+                                {drafting ? 'Drafting…' : 'AI Draft'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="emp-form-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="emp-form-label">Incident Narrative</label>
-                        <p style={{ fontSize: 12, color: '#a0aec0', margin: '0 0 6px' }}>{NARRATIVE_STARTERS[memoType]}</p>
+                        <p style={{ fontSize: 12, color: '#a0aec0', margin: '0 0 6px' }}>This is what appears in the memo. Type it directly, or use AI Draft above and edit the result.</p>
                         <textarea
                             className="emp-form-input"
                             rows={5}
