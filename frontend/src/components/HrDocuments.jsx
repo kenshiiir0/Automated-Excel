@@ -105,7 +105,7 @@ export default function HrDocuments() {
     const openFile = async (item) => {
         setOpeningFileId(item.id);
         try {
-            const res = await fetch(`/api/hr-documents/${encodeURIComponent(item.id)}/download`);
+            const res = await fetch(`/api/hr-documents/${encodeURIComponent(item.id)}/download?name=${encodeURIComponent(item.name || '')}`);
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.error || 'Could not open this file.');

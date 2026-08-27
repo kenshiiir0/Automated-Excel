@@ -92,6 +92,24 @@ const connectionStatus = async (req, res) => {
     }
 };
 
+// File types a browser tab can actually render on its own -- these get
+// "inline" so the tab previews the file instead of triggering a save
+// dialog. Everything else (docx, xlsx, zip, ...) has no in-browser
+// renderer no matter what header we send, so it stays "attachment" and
+// downloads -- that's a real browser limitation, not a choice we're
+// making here.
+const INLINE_PREVIEWABLE_TYPES = new Set([
+    'application/pdf',
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
+    'text/plain', 'text/csv',
+]);
+
+function sanitizeFilenameForHeader(name) {
+    // Content-Disposition filenames can't contain raw quotes/newlines --
+    // strip anything that would break the header rather than reject it.
+    return String(name || 'file').replace(/["\r\n]/g, '');
+}
+
 // GET /api/hr-documents/:fileId/download -- any logged-in account
 // (requireAuth only, matching every other read route here). Streams the
 // file's bytes through our own server so a plain 'user' account can open
@@ -100,13 +118,23 @@ const connectionStatus = async (req, res) => {
 const downloadFile = async (req, res) => {
     try {
         const { fileId } = req.params;
+        const { name } = req.query; // optional, passed by the frontend for a nicer filename
         const upstream = await downloadFileStream(fileId);
-        // Pass through whatever content-type/disposition WorkDrive sent so
-        // the browser handles PDFs, images, docx, etc. correctly (preview
-        // inline where it can, download otherwise) instead of guessing.
-        if (upstream.headers['content-type']) res.setHeader('Content-Type', upstream.headers['content-type']);
+        const contentType = upstream.headers['content-type'] || 'application/octet-stream';
+
+        if (contentType) res.setHeader('Content-Type', contentType);
         if (upstream.headers['content-length']) res.setHeader('Content-Length', upstream.headers['content-length']);
-        if (upstream.headers['content-disposition']) res.setHeader('Content-Disposition', upstream.headers['content-disposition']);
+
+        // We set Content-Disposition ourselves (ignoring whatever WorkDrive
+        // sent) so PDFs and images open inline in the browser tab instead
+        // of forcing a "Save As" dialog -- WorkDrive's download endpoint
+        // defaults to "attachment" for everything, which is what was
+        // causing every file to download instead of preview.
+        const baseType = contentType.split(';')[0].trim().toLowerCase();
+        const disposition = INLINE_PREVIEWABLE_TYPES.has(baseType) ? 'inline' : 'attachment';
+        const filename = sanitizeFilenameForHeader(name);
+        res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
+
         upstream.data.pipe(res);
     } catch (err) {
         if (err.code === 'NOT_CONNECTED') {
