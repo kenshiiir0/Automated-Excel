@@ -1914,6 +1914,128 @@ button.profile-status-pill {
   color: #c5221f;
 }
 
+.emp-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.emp-detail-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1.5px solid transparent;
+}
+
+.emp-detail-action-btn.edit {
+  background: linear-gradient(135deg, rgba(30,160,218,0.12), rgba(96,166,68,0.12));
+  border-color: rgba(30,160,218,0.25);
+  color: #146B8F;
+}
+
+.emp-detail-action-btn.edit:hover {
+  background: linear-gradient(135deg, rgba(30,160,218,0.2), rgba(96,166,68,0.2));
+  border-color: rgba(30,160,218,0.4);
+}
+
+.emp-detail-action-btn.delete {
+  background: transparent;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  padding: 7px 9px;
+}
+
+.emp-detail-action-btn.delete:hover {
+  background: #fce8e6;
+  border-color: #fca5a5;
+  color: #c5221f;
+}
+
+.emp-detail-modal.editing {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28), 0 0 0 3px rgba(30, 160, 218, 0.25);
+}
+
+.emp-detail-edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #1EA0DA, #60A644);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 8px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-radius: 14px 14px 0 0;
+}
+
+.emp-detail-delete-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fdecea;
+  border-bottom: 1.5px solid #f8c9c4;
+  padding: 16px 24px;
+  color: #8a2c22;
+  animation: overlayIn 0.15s ease;
+}
+
+.emp-detail-delete-banner svg {
+  color: #c5221f;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.emp-detail-delete-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.emp-detail-delete-text strong {
+  font-size: 13.5px;
+  color: #7a1f16;
+}
+
+.emp-detail-delete-text span {
+  font-size: 12px;
+  color: #a8453a;
+}
+
+.emp-detail-delete-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.emp-detail-grid.editing {
+  align-items: start;
+}
+
+.emp-detail-edit-field {
+  margin-bottom: 0;
+}
+
+.emp-detail-edit-field .emp-form-label {
+  font-size: 10.5px;
+}
+
+.emp-detail-edit-field .emp-form-input {
+  font-size: 12.5px;
+  padding: 8px 10px;
+}
+
 /* Sections inside modal */
 .emp-detail-body {
   padding: 0 24px 24px;

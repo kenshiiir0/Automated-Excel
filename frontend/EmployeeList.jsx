@@ -558,6 +558,12 @@ export default function EmployeeList() {
         <EmployeeDetailModal
           employeeId={selectedEmpId}
           onClose={() => setSelectedEmpId(null)}
+          onUpdated={(updated) => {
+            setEmployees(prev => prev.map(e => (e.id === updated.id ? { ...e, ...updated } : e)));
+          }}
+          onDeleted={(deletedId) => {
+            setEmployees(prev => prev.filter(e => e.id !== deletedId));
+          }}
         />
       )}
     </div>
