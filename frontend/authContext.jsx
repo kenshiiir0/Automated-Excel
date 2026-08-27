@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { reportApiRequestTiming } from './NetworkStatusBanner.jsx';
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = 'hr_auth_token';
@@ -57,11 +58,31 @@ function installAuthFetch(onUnauthorized) {
             }
         }
 
-        const res = await originalFetch(input, init);
-        if (isApiCall && !isAuthCall && res.status === 401) {
-            onUnauthorized();
+        // Times every API call so the network-status banner can flag a
+        // slow connection -- there's no single browser signal for
+        // "slow" the way there is for "offline", so request duration is
+        // used as a proxy. Reported for every /api/ call, auth included,
+        // since a slow login should surface the same warning.
+        const startedAt = Date.now();
+        try {
+            const res = await originalFetch(input, init);
+            if (isApiCall) {
+                reportApiRequestTiming(Date.now() - startedAt, false);
+            }
+            if (isApiCall && !isAuthCall && res.status === 401) {
+                onUnauthorized();
+            }
+            return res;
+        } catch (err) {
+            // A network-level failure (e.g. truly offline, DNS gone) --
+            // the 'offline' browser event usually covers this already,
+            // but counting it as "slow/failed" here too means a flaky
+            // connection that isn't fully offline still gets flagged.
+            if (isApiCall) {
+                reportApiRequestTiming(Date.now() - startedAt, true);
+            }
+            throw err;
         }
-        return res;
     };
 }
 

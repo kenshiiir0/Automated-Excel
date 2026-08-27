@@ -8,17 +8,24 @@ import EmployeeList from '../EmployeeList.jsx';
 import RecruitmentTracker from '../RecruitmentTracker.jsx';
 import InternList from '../InternList.jsx';
 import Login from '../Login.jsx';
+import NetworkStatusBanner from '../NetworkStatusBanner.jsx';
 import { AuthProvider, useAuth } from '../authContext.jsx';
 
 function AuthedApp() {
   const { user } = useAuth();
 
   if (!user) {
-    return <Login />;
+    return (
+      <>
+        <NetworkStatusBanner />
+        <Login />
+      </>
+    );
   }
 
   return (
     <BrowserRouter>
+      <NetworkStatusBanner />
       <div className="App app-layout">
         <Navigation />
         <main className="app-content">

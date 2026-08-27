@@ -1474,6 +1474,48 @@ button.profile-status-pill {
 .toast-info    { background: linear-gradient(135deg, #0F5777, #12678D); }
 
 /* =====================================================
+   NETWORK STATUS BANNER
+   ===================================================== */
+
+/* Small floating pill, top-center, shown over whatever page you're on
+   whenever the browser goes offline or API requests are running slow.
+   Deliberately placed at the top (not bottom, where toasts live) and
+   centered so it reads as a persistent connectivity notice rather than
+   a one-off action confirmation. */
+.network-status-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  z-index: 10000;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+  animation: toastIn 0.25s ease;
+  max-width: min(92vw, 460px);
+  text-align: left;
+}
+
+.network-status-banner.offline {
+  background: linear-gradient(135deg, #c0504d, #e57373);
+}
+
+.network-status-banner.slow {
+  background: linear-gradient(135deg, #e0973f, #f0b95c);
+  color: #3a2a08;
+}
+
+.network-status-banner svg {
+  flex-shrink: 0;
+}
+
+/* =====================================================
    LOADING STATE
    ===================================================== */
 
