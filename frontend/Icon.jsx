@@ -35,6 +35,7 @@ const PATHS = {
   arrowLeft: <><path d="M19 12H5" /><path d="M11 6l-6 6 6 6" /></>,
   download: <><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M4 19h16" /></>,
   folder: <path d="M3 6a2 2 0 0 1 2-2h4.5l2 2.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z" />,
+  file: <><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" /><path d="M15 2v5h5" /></>,
 };
 
 export default function Icon({ name, size = 16, strokeWidth = 2, className = '', style = {}, title }) {

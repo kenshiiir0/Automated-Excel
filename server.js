@@ -12,6 +12,7 @@ import zohoRoutes from './routes/zoho.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import usersRoutes from './routes/users.js';
+import zohoWorkdriveRoutes from './routes/zohoWorkdrive.js';
 import { requireAuth } from './lib/requireAuth.js';
 import { apiLimiter } from './lib/rateLimiters.js';
 
@@ -55,6 +56,13 @@ app.use('/api/email', requireAuth, emailRoutes);
 app.use('/api/interns', requireAuth, internRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
+
+// zohoWorkdriveRoutes applies its own per-route auth (requireAuth +
+// requireRole where needed) rather than a blanket requireAuth here,
+// because /callback must stay reachable by Zoho's plain browser redirect
+// (no Authorization header) while /connect and /hr-documents still need
+// to be gated.
+app.use('/api', zohoWorkdriveRoutes);
 
 // /api/zoho/* is deliberately NOT behind requireAuth -- it has its own,
 // separate API-key check (see lib/apiKeyAuth.js) because it's meant to be
