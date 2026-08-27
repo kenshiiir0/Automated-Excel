@@ -13,7 +13,7 @@ const listUsers = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
             .from('users')
-            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at')
+            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at, last_seen_at')
             .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -55,7 +55,7 @@ const updateUser = async (req, res) => {
             .from('users')
             .update(updates)
             .eq('id', targetId)
-            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at')
+            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at, last_seen_at')
             .single();
 
         if (error) throw error;
@@ -125,7 +125,7 @@ const createUser = async (req, res) => {
                 is_active: true,
                 email_verified: true,
             })
-            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at')
+            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at, last_seen_at')
             .single();
 
         if (error) throw error;

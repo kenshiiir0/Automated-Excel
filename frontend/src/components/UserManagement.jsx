@@ -27,6 +27,37 @@ function fmtDate(v) {
     }
 }
 
+// last_seen_at is refreshed on any authenticated API call (throttled to
+// once a minute server-side, see lib/requireAuth.js), so "Online" here
+// means "made a request within the last ~15 minutes" -- an approximation,
+// not a live/real-time presence indicator. There's no server-side session
+// list to check against with stateless JWTs, so this is the practical
+// substitute: cheap, and close enough for "is this person around right
+// now" at a glance.
+const ONLINE_THRESHOLD_MS = 15 * 60 * 1000;
+
+function isOnline(lastSeenAt) {
+    if (!lastSeenAt) return false;
+    return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS;
+}
+
+function OnlineIndicator({ lastSeenAt }) {
+    const online = isOnline(lastSeenAt);
+    return (
+        <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: online ? '#137333' : '#a0aec0', fontWeight: online ? 700 : 500 }}
+            title={online ? 'Active within the last 15 minutes' : 'Not recently active'}
+        >
+            <span style={{
+                width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
+                background: online ? '#34a853' : '#cbd5e0',
+                boxShadow: online ? '0 0 0 3px rgba(52,168,83,0.18)' : 'none',
+            }} />
+            {online ? 'Online' : 'Offline'}
+        </span>
+    );
+}
+
 const EMPTY_NEW_USER = { fullName: '', email: '', role: 'user' };
 
 // Lightweight account creation: a super_admin only picks who this is and
@@ -259,6 +290,7 @@ export default function UserManagement() {
                             <th>Email</th>
                             <th>Role</th>
                             <th>Status</th>
+                            <th>Presence</th>
                             <th>Member Since</th>
                             <th>Last Login</th>
                         </tr>
@@ -266,7 +298,7 @@ export default function UserManagement() {
                     <tbody>
                         {users.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                                     No accounts found.
                                 </td>
                             </tr>
@@ -315,6 +347,7 @@ export default function UserManagement() {
                                             </span>
                                         )}
                                     </td>
+                                    <td><OnlineIndicator lastSeenAt={u.last_seen_at} /></td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(u.created_at)}</td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(u.last_login_at)}</td>
                                 </tr>
