@@ -11,6 +11,17 @@ function fmtDate(v) {
     }
 }
 
+// Mirrors the server's INLINE_PREVIEWABLE_TYPES list (by file extension,
+// since that's what's available client-side) purely so the UI can hint
+// "Preview" vs "Download" before the click -- the actual behavior is
+// still decided server-side by the real Content-Type, this is just a
+// heads-up so a .docx/.xlsx click isn't a surprise download.
+const PREVIEWABLE_EXTENSIONS = new Set(['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'txt', 'csv']);
+function isLikelyPreviewable(name) {
+    const ext = (name || '').split('.').pop()?.toLowerCase();
+    return PREVIEWABLE_EXTENSIONS.has(ext);
+}
+
 function fmtSize(bytes) {
     if (bytes === null || bytes === undefined) return '—';
     const n = Number(bytes);
@@ -247,11 +258,16 @@ export default function HrDocuments() {
                                             openFile(item);
                                         }
                                     }}
-                                    title={item.isFolder ? 'Open folder' : 'Open file'}
+                                    title={item.isFolder ? 'Open folder' : (isLikelyPreviewable(item.name) ? 'Preview in browser' : 'Download (no browser preview for this file type)')}
                                 >
                                     <td style={{ fontWeight: 600, color: item.isFolder ? '#1a202c' : '#3182ce', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <Icon name={item.isFolder ? 'folder' : 'file'} size={16} />
                                         {item.name}
+                                        {!item.isFolder && (
+                                            <span style={{ fontSize: 10.5, fontWeight: 500, color: '#a0aec0', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 6px' }}>
+                                                {isLikelyPreviewable(item.name) ? 'Preview' : 'Download'}
+                                            </span>
+                                        )}
                                         {openingFileId === item.id && <span style={{ fontSize: 11, color: '#a0aec0', fontWeight: 400 }}>Opening…</span>}
                                     </td>
                                     <td style={{ fontSize: 12, color: '#718096' }}>{item.isFolder ? '—' : fmtSize(item.size)}</td>
