@@ -21,8 +21,11 @@ export default function Navigation() {
   // admin can view the account list (read-only), super_admin can also
   // edit roles/status. A plain 'user' account never sees this item.
   const canSeeUserManagement = user?.role === 'admin' || user?.role === 'super_admin';
+  // Disciplinary Memos is a write/HR-action capability (generating and
+  // emailing NTEs/warnings), gated the same as Manage Users -- admin and
+  // super_admin only, not visible to a plain 'user' account.
   const navItems = canSeeUserManagement
-    ? [...NAV_ITEMS, { to: '/users', label: 'Manage Users', icon: 'shield' }]
+    ? [...NAV_ITEMS, { to: '/disciplinary-memos', label: 'Disciplinary Memos', icon: 'alertDoc' }, { to: '/users', label: 'Manage Users', icon: 'shield' }]
     : NAV_ITEMS;
 
   // "collapsed" is the user's pinned preference, remembered across visits.

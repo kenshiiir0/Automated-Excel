@@ -13,6 +13,7 @@ import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import usersRoutes from './routes/users.js';
 import zohoWorkdriveRoutes from './routes/zohoWorkdrive.js';
+import disciplinaryMemosRoutes from './routes/disciplinaryMemos.js';
 import { requireAuth } from './lib/requireAuth.js';
 import { apiLimiter } from './lib/rateLimiters.js';
 
@@ -63,6 +64,7 @@ app.use('/api/users', requireAuth, usersRoutes);
 // (no Authorization header) while /connect and /hr-documents still need
 // to be gated.
 app.use('/api', zohoWorkdriveRoutes);
+app.use('/api', requireAuth, disciplinaryMemosRoutes);
 
 // /api/zoho/* is deliberately NOT behind requireAuth -- it has its own,
 // separate API-key check (see lib/apiKeyAuth.js) because it's meant to be
