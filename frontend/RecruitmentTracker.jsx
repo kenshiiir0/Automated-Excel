@@ -165,16 +165,6 @@ export default function RecruitmentTracker() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [candidates]);
 
-  // Pipeline summary
-  const pipelineSummary = useMemo(() => {
-    const counts = {};
-    candidates.forEach(c => {
-      const key = c.status || 'Unknown';
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  }, [candidates]);
-
   const closedCount = candidates.filter(c => {
     const s = (c.status || '').toLowerCase();
     return s.includes('closed') || s.includes('hired') || s.includes('onboard');
@@ -271,28 +261,6 @@ export default function RecruitmentTracker() {
           <div className="page-kpi-lbl">Open</div>
         </div>
       </div>
-
-      {/* Pipeline Status Summary */}
-      {pipelineSummary.length > 0 && (
-        <div className="pipeline-summary-bar">
-          {pipelineSummary.map(([status, count]) => {
-            const m = getStatusMeta(status);
-            return (
-              <button
-                key={status}
-                className={`pipeline-status-pill ${filterStatus === status ? 'active' : ''}`}
-                style={{ '--dot': m.dot, '--bg': m.bg, '--clr': m.color }}
-                onClick={() => setFilterStatus(filterStatus === status ? 'All' : status)}
-                title={`Filter: ${status}`}
-              >
-                <span className="pipeline-pill-dot" />
-                <span className="pipeline-pill-label">{status.length > 18 ? status.substring(0, 18) + '…' : status}</span>
-                <span className="pipeline-pill-count">{count}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* By Recruiter Summary */}
       {recruiterSummary.length > 0 && (
