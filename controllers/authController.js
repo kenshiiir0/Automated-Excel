@@ -21,10 +21,18 @@ const login = async (req, res) => {
             return res.status(400).json({ error: 'Username and password are required.' });
         }
 
+        // Trim + lowercase before the lookup -- usernames are stored
+        // lowercase (they're email addresses), but a leading/trailing
+        // space from a copy-paste, or a mobile keyboard auto-capitalizing
+        // the first letter, would otherwise fail this exact-match lookup
+        // and surface as a plain "invalid username or password" with no
+        // indication that the account and password were actually fine.
+        const normalizedUsername = username.trim().toLowerCase();
+
         const { data: user, error } = await supabaseAdmin
             .from('users')
             .select('*')
-            .eq('username', username)
+            .eq('username', normalizedUsername)
             .single();
 
         // Same generic error whether the username doesn't exist or the
