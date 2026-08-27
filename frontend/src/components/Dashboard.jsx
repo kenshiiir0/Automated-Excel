@@ -27,7 +27,8 @@ export default function Dashboard() {
     ongoingRequisitions: 0,
     topExitReason: 'None',
     topExitCount: 0,
-    totalSeparations: 0
+    totalSeparations: 0,
+    internCount: 0
   });
 
   const [activeByDept, setActiveByDept] = useState([]);
@@ -485,9 +486,9 @@ export default function Dashboard() {
           {/* Skeleton Section Header */}
           <div className="skeleton skeleton-title" style={{ width: '220px', height: '24px', margin: '20px 0 14px' }}></div>
           
-          {/* Skeleton KPI Grid (8 cards) */}
+          {/* Skeleton KPI Grid (9 cards) */}
           <div className="kpi-grid">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(9)].map((_, i) => (
               <div key={i} className="kpi-card skeleton-card">
                 <div className="skeleton skeleton-text" style={{ width: '60%', height: '12px' }}></div>
                 <div className="skeleton skeleton-val" style={{ width: '45%', height: '36px', margin: '8px 0' }}></div>
@@ -590,6 +591,12 @@ export default function Dashboard() {
                 {stats.topExitReason}
               </div>
               <div className="kpi-subtitle">{stats.topExitCount} employees ({stats.totalSeparations} all-time)</div>
+            </div>
+
+            <div className="kpi-card bg-green">
+              <div className="kpi-title">INTERNS</div>
+              <div className="kpi-value">{stats.internCount}</div>
+              <div className="kpi-subtitle">on file</div>
             </div>
           </div>
 

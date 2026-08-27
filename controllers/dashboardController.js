@@ -45,13 +45,25 @@ export const getDashboardStats = async (req, res) => {
       .select('status, source_sheet');
     if (candError) throw candError;
 
-    // Only count requisitions logged in the master "RECRUITMENT UPDATE" sheet --
-    // "ACCOUNT PER RECRUITER" is a separate, overlapping per-recruiter tracker
-    // that the Excel dashboard's own Open/Ongoing Requisitions KPI does not
-    // include, so filtering here keeps this number matching Excel exactly.
-    const pipelineCandidates = candidates.filter(c => c.source_sheet === 'RECRUITMENT UPDATE');
-    const ongoingRequisitions = pipelineCandidates.filter(c => c.status === 'Ongoing').length;
-    const openRequisitions = pipelineCandidates.filter(c => c.status === 'Open' || c.status === 'Ongoing').length;
+    // Total interns currently on file. Interns have no employment_status
+    // field (unlike employees) -- the Interns page itself just shows a
+    // flat count of every row, so this matches that directly with no
+    // active/inactive distinction to make.
+    const { count: internCount, error: internError } = await supabaseAdmin
+      .from('interns')
+      .select('id', { count: 'exact', head: true });
+    if (internError) throw internError;
+
+    // Counts every candidate regardless of source_sheet, so this always
+    // matches the total shown on the Recruitment page itself (which also
+    // shows every candidate, from both the master "RECRUITMENT UPDATE"
+    // sheet and the per-recruiter "ACCOUNT PER RECRUITER" sheet). This
+    // used to filter down to "RECRUITMENT UPDATE" only, to match the
+    // original Excel dashboard's definition -- but that made this number
+    // silently smaller than the Recruitment page's own total with no
+    // indication why, which read as the two screens not tallying.
+    const ongoingRequisitions = candidates.filter(c => c.status === 'Ongoing').length;
+    const openRequisitions = candidates.filter(c => c.status === 'Open' || c.status === 'Ongoing').length;
 
     res.json({
       totalEmployees,
@@ -64,7 +76,8 @@ export const getDashboardStats = async (req, res) => {
       ongoingRequisitions,
       topExitReason,
       topExitCount,
-      totalSeparations
+      totalSeparations,
+      internCount: internCount || 0
     });
   } catch (err) {
     console.error('Error fetching dashboard stats:', err);
@@ -595,12 +608,11 @@ export const getRecruitmentPipeline = async (req, res) => {
       .not('status', 'is', null);
     if (error) throw error;
 
-    // Same reasoning as getDashboardStats above: only the master
-    // "RECRUITMENT UPDATE" sheet feeds this chart in Excel.
-    const pipelineData = data.filter(c => c.source_sheet === 'RECRUITMENT UPDATE');
-
+    // Counts every candidate regardless of source_sheet -- see the note
+    // in getDashboardStats above for why this no longer filters down to
+    // the master "RECRUITMENT UPDATE" sheet only.
     const grouped = {};
-    pipelineData.forEach(c => {
+    data.forEach(c => {
       const s = c.status || 'Unknown';
       grouped[s] = (grouped[s] || 0) + 1;
     });
