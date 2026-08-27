@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '../lib/supabase.js';
-import { MEMO_TYPES, getMemoTypeConfig, renderMemoDocx, TODAY_LONG } from '../lib/disciplinaryMemos.js';
+import { MEMO_TYPES, COMPANY_RULES, getMemoTypeConfig, renderMemoDocx, TODAY_LONG } from '../lib/disciplinaryMemos.js';
 import { sendDisciplinaryMemoEmail } from '../lib/resend.js';
 import { draftIncidentNarrative } from '../lib/narrativeDrafter.js';
 
@@ -46,7 +46,7 @@ function pickEmployeeEmail(emp) {
 // the frontend doesn't hardcode them separately from the backend.
 const listMemoTypes = (req, res) => {
     const types = Object.entries(MEMO_TYPES).map(([key, cfg]) => ({ key, label: cfg.label }));
-    res.json({ types });
+    res.json({ types, rules: COMPANY_RULES });
 };
 
 // POST /api/disciplinary-memos/preview -- generates the .docx in memory

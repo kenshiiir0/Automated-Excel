@@ -19,6 +19,7 @@ function fmtDate(v) {
 export default function DisciplinaryMemos() {
     const [employees, setEmployees] = useState([]);
     const [memoTypes, setMemoTypes] = useState([]);
+    const [companyRules, setCompanyRules] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
@@ -26,6 +27,7 @@ export default function DisciplinaryMemos() {
     const [employeeSearch, setEmployeeSearch] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [memoType, setMemoType] = useState('NTE');
+    const [ruleCode, setRuleCode] = useState('');
     const [ruleText, setRuleText] = useState('');
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
@@ -57,6 +59,7 @@ export default function DisciplinaryMemos() {
                 const historyData = await historyRes.json();
                 setEmployees(Array.isArray(empData) ? empData : []);
                 setMemoTypes(typesData.types || []);
+                setCompanyRules(typesData.rules || []);
                 setHistory(Array.isArray(historyData) ? historyData : []);
             } catch (err) {
                 showToast('error', 'Could not load employees or memo history.');
@@ -75,7 +78,7 @@ export default function DisciplinaryMemos() {
             setPreviewUrl(null);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedEmployee, memoType, ruleText, incidentDate, incidentTime, incidentNarrative, priorWarningNote]);
+    }, [selectedEmployee, memoType, ruleCode, ruleText, incidentDate, incidentTime, incidentNarrative, priorWarningNote]);
 
     const filteredEmployees = employeeSearch.trim()
         ? employees.filter(e => `${e.first_name || ''} ${e.last_name || ''}`.toLowerCase().includes(employeeSearch.toLowerCase()))
@@ -93,6 +96,16 @@ export default function DisciplinaryMemos() {
         incidentNarrative: incidentNarrative.trim(),
         priorWarningNote: priorWarningNote.trim(),
     });
+
+    const handleRuleCodeChange = (code) => {
+        setRuleCode(code);
+        if (code === 'OTHER') {
+            setRuleText('');
+            return;
+        }
+        const match = companyRules.find(r => r.code === code);
+        setRuleText(match ? match.text : '');
+    };
 
     const handleDraftNarrative = async () => {
         if (!ruleText.trim() || !bulletFacts.trim()) {
@@ -231,15 +244,30 @@ export default function DisciplinaryMemos() {
                         </select>
                     </div>
 
-                    <div className="emp-form-group">
+                    <div className="emp-form-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="emp-form-label">Company Rule Violated</label>
-                        <input
+                        <select
                             className="emp-form-input"
-                            type="text"
-                            placeholder="e.g. Rule No. 3.1 Tardiness, leaving early, exceeding breaks…"
-                            value={ruleText}
-                            onChange={e => setRuleText(e.target.value)}
-                        />
+                            value={ruleCode}
+                            onChange={e => handleRuleCodeChange(e.target.value)}
+                        >
+                            <option value="" disabled>Select the rule violated…</option>
+                            {companyRules.map(r => (
+                                <option key={r.code} value={r.code}>{r.code === 'OTHER' ? r.text : `Rule ${r.code} — ${r.text.replace(/^Rule No\. [0-9.]+ /, '')}`}</option>
+                            ))}
+                        </select>
+                        {ruleCode === 'OTHER' && (
+                            <textarea
+                                className="emp-form-input"
+                                style={{ marginTop: '8px', minHeight: '60px' }}
+                                placeholder="Type the exact company rule/policy violated…"
+                                value={ruleText}
+                                onChange={e => setRuleText(e.target.value)}
+                            />
+                        )}
+                        {ruleCode && ruleCode !== 'OTHER' && (
+                            <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '6px' }}>{ruleText}</p>
+                        )}
                     </div>
 
                     <div className="emp-form-group">
