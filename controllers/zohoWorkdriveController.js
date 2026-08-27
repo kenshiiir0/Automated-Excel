@@ -6,16 +6,20 @@ import {
     isConnected,
 } from '../lib/zohoWorkdrive.js';
 
-// GET /api/zoho-workdrive/connect -- super_admin only. Redirects the
-// browser straight to Zoho's consent screen; there's nothing to render
-// here, this route's whole job is the redirect.
+// GET /api/zoho-workdrive/connect -- super_admin only. Returns the Zoho
+// consent-screen URL as JSON rather than redirecting directly, because
+// this route requires a Bearer token (via requireAuth) and a plain
+// browser navigation (<a href>, or pasting the URL) can't attach one --
+// only an authenticated fetch() from the already-logged-in app can. The
+// frontend fetches this, then does the actual page navigation itself
+// with window.location.href.
 const connect = (req, res) => {
     try {
         // req.user is set by requireAuth/requireRole on this route -- pass
         // the connecting super_admin's id through as OAuth "state" so the
         // callback (which has no session context of its own) can record
         // who connected the integration.
-        res.redirect(buildAuthUrl(String(req.user.id)));
+        res.json({ authUrl: buildAuthUrl(String(req.user.id)) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

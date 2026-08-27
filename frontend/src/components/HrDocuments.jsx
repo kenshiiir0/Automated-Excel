@@ -78,6 +78,26 @@ export default function HrDocuments() {
 
     useEffect(() => { load(); }, [load]);
 
+    const [connecting, setConnecting] = useState(false);
+
+    // Can't use a plain <a href="/api/zoho-workdrive/connect"> here --
+    // that route requires a Bearer token (requireAuth), and a raw browser
+    // navigation can't attach one (only our patched fetch() can, via
+    // authContext.jsx). So this fetches the Zoho consent URL as JSON
+    // first, authenticated, then does the actual page navigation itself.
+    const handleConnect = async () => {
+        setConnecting(true);
+        try {
+            const res = await fetch('/api/zoho-workdrive/connect');
+            const data = await res.json();
+            if (!res.ok || !data.authUrl) throw new Error(data.error || 'Could not start the Zoho connection.');
+            window.location.href = data.authUrl;
+        } catch (err) {
+            showToast('error', err.message);
+            setConnecting(false);
+        }
+    };
+
     const sortedItems = [...items].sort((a, b) => {
         if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
         return (a.name || '').localeCompare(b.name || '');
@@ -95,9 +115,9 @@ export default function HrDocuments() {
                     </p>
                 </div>
                 {isSuperAdmin && connected && (
-                    <a href="/api/zoho-workdrive/connect" className="btn-ghost" style={{ textDecoration: 'none' }}>
-                        Reconnect
-                    </a>
+                    <button type="button" className="btn-ghost" onClick={handleConnect} disabled={connecting}>
+                        {connecting ? 'Redirecting…' : 'Reconnect'}
+                    </button>
                 )}
             </div>
 
@@ -118,9 +138,9 @@ export default function HrDocuments() {
                             <p style={{ fontSize: 13, color: '#a0aec0', margin: '0 0 16px' }}>
                                 Connect it once, and files will stay in sync automatically for everyone.
                             </p>
-                            <a href="/api/zoho-workdrive/connect" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
-                                Connect Zoho WorkDrive
-                            </a>
+                            <button type="button" className="btn-primary" onClick={handleConnect} disabled={connecting}>
+                                {connecting ? 'Redirecting…' : 'Connect Zoho WorkDrive'}
+                            </button>
                         </>
                     ) : (
                         <p style={{ fontSize: 13, color: '#a0aec0', margin: 0 }}>
