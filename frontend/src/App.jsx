@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import Profile from './components/Profile.jsx';
 import EmployeeList from '../EmployeeList.jsx';
 import RecruitmentTracker from '../RecruitmentTracker.jsx';
 import InternList from '../InternList.jsx';
@@ -25,6 +26,7 @@ function AuthedApp() {
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/recruitment" element={<RecruitmentTracker />} />
             <Route path="/interns" element={<InternList />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </main>
       </div>

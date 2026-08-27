@@ -114,8 +114,21 @@ export function AuthProvider({ children }) {
         return data;
     }, []);
 
+    // Called after a profile edit (e.g. name change) so the sidebar and
+    // anywhere else showing `user` reflect it immediately, without needing
+    // a full re-login. Merges into the existing stored user rather than
+    // replacing it, since the profile response may include fields (email,
+    // created_at, etc.) beyond what login originally stored.
+    const setUserFromProfile = useCallback((updatedFields) => {
+        setUser(prev => {
+            const merged = { ...(prev || {}), ...updatedFields };
+            localStorage.setItem(USER_KEY, JSON.stringify(merged));
+            return merged;
+        });
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ user, login, logout: logoutWithDelay, loggingOut, requestSignupOtp, verifySignupOtp }}>
+        <AuthContext.Provider value={{ user, login, logout: logoutWithDelay, loggingOut, requestSignupOtp, verifySignupOtp, setUserFromProfile }}>
             {children}
         </AuthContext.Provider>
     );

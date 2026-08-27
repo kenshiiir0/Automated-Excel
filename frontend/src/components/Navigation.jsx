@@ -87,17 +87,34 @@ export default function Navigation() {
 
       <div className="sidebar-bottom">
         {user && (
+          <NavLink
+            to="/profile"
+            className={({ isActive }) => `sidebar-profile-link${isActive ? ' active' : ''}`}
+            title={!expanded ? `${user.full_name || user.username} -- View profile` : undefined}
+          >
+            <span className="sidebar-profile-avatar">
+              {(user.full_name || user.username || '?').slice(0, 1).toUpperCase()}
+            </span>
+            {expanded && (
+              <span className="sidebar-profile-text">
+                <span className="sidebar-profile-name">{user.full_name || user.username}</span>
+                <span className="sidebar-profile-role">View profile</span>
+              </span>
+            )}
+          </NavLink>
+        )}
+        {user && (
           <button
             className="sidebar-toggle"
             onClick={logout}
             disabled={loggingOut}
             aria-label="Log out"
-            title={!expanded ? `Log out (${user.username})` : undefined}
+            title={!expanded ? 'Log out' : undefined}
           >
             <span className="sidebar-link-icon">
               {loggingOut ? <span className="btn-spinner" /> : <Icon name="logout" size={18} />}
             </span>
-            {expanded && <span>{loggingOut ? 'Signing out…' : `Log out${user.full_name ? ` (${user.full_name})` : ''}`}</span>}
+            {expanded && <span>{loggingOut ? 'Signing out…' : 'Log out'}</span>}
           </button>
         )}
         <button
