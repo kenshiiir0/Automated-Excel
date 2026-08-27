@@ -1,5 +1,5 @@
 import express from 'express';
-import { connect, callback, listDocuments, connectionStatus } from '../controllers/zohoWorkdriveController.js';
+import { connect, callback, listDocuments, connectionStatus, downloadFile } from '../controllers/zohoWorkdriveController.js';
 import { requireAuth } from '../lib/requireAuth.js';
 import { requireRole } from '../lib/requireRole.js';
 
@@ -20,5 +20,6 @@ router.get('/zoho-workdrive/callback', callback);
 // surface itself, not just the UI.
 router.get('/hr-documents/status', requireAuth, connectionStatus);
 router.get('/hr-documents', requireAuth, listDocuments);
+router.get('/hr-documents/:fileId/download', requireAuth, downloadFile);
 
 export default router;

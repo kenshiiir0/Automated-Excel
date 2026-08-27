@@ -3,7 +3,9 @@ import {
     exchangeCodeForTokens,
     saveRefreshToken,
     listFolderContents,
+    downloadFileStream,
     isConnected,
+    isLikelyValidFolderId,
 } from '../lib/zohoWorkdrive.js';
 
 // GET /api/zoho-workdrive/connect -- super_admin only. Returns the Zoho
@@ -50,17 +52,26 @@ const callback = async (req, res) => {
     }
 };
 
-// GET /api/hr-documents -- any logged-in user (requireAuth only, no role
-// gate). Read-only: this route has no corresponding POST/PUT/DELETE, so
-// "user role = view only" is enforced by the API surface itself, not just
-// hidden buttons in the UI.
+// GET /api/hr-documents?folderId=... -- any logged-in user (requireAuth
+// only, no role gate). Read-only: this route has no corresponding
+// POST/PUT/DELETE, so "user role = view only" is enforced by the API
+// surface itself, not just hidden buttons in the UI. Omitting folderId
+// lists the connected root folder; passing one (from clicking a
+// subfolder in the UI) lists that subfolder instead -- WorkDrive's own
+// permission model is what actually stops this from reaching anything
+// the connected account can't see, this route doesn't add its own
+// folder allowlist on top of that.
 const listDocuments = async (req, res) => {
     try {
         const connected = await isConnected();
         if (!connected) {
             return res.status(200).json({ connected: false, items: [] });
         }
-        const items = await listFolderContents();
+        const { folderId } = req.query;
+        if (folderId && !isLikelyValidFolderId(folderId)) {
+            return res.status(400).json({ error: 'Invalid folder id.' });
+        }
+        const items = await listFolderContents(folderId || undefined);
         res.json({ connected: true, items });
     } catch (err) {
         if (err.code === 'NOT_CONNECTED') {
@@ -81,4 +92,29 @@ const connectionStatus = async (req, res) => {
     }
 };
 
-export { connect, callback, listDocuments, connectionStatus };
+// GET /api/hr-documents/:fileId/download -- any logged-in account
+// (requireAuth only, matching every other read route here). Streams the
+// file's bytes through our own server so a plain 'user' account can open
+// it without ever needing a Zoho login of their own -- unlike WorkDrive's
+// own web-viewer link, which requires signing into Zoho.
+const downloadFile = async (req, res) => {
+    try {
+        const { fileId } = req.params;
+        const upstream = await downloadFileStream(fileId);
+        // Pass through whatever content-type/disposition WorkDrive sent so
+        // the browser handles PDFs, images, docx, etc. correctly (preview
+        // inline where it can, download otherwise) instead of guessing.
+        if (upstream.headers['content-type']) res.setHeader('Content-Type', upstream.headers['content-type']);
+        if (upstream.headers['content-length']) res.setHeader('Content-Length', upstream.headers['content-length']);
+        if (upstream.headers['content-disposition']) res.setHeader('Content-Disposition', upstream.headers['content-disposition']);
+        upstream.data.pipe(res);
+    } catch (err) {
+        if (err.code === 'NOT_CONNECTED') {
+            return res.status(409).json({ error: 'WorkDrive is not connected.' });
+        }
+        console.error('Zoho WorkDrive download failed:', err.response?.data || err.message);
+        res.status(500).json({ error: 'Could not download this file from Zoho WorkDrive.' });
+    }
+};
+
+export { connect, callback, listDocuments, connectionStatus, downloadFile };
