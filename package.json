@@ -19,7 +19,8 @@
         "csv-parse": "^7.0.2",
         "dotenv": "^16.3.1",
         "express": "^4.18.2",
-        "jsonwebtoken": "^9.0.3"
+        "jsonwebtoken": "^9.0.3",
+        "resend": "^6.24.0"
     },
     "devDependencies": {
         "concurrently": "^10.0.5"

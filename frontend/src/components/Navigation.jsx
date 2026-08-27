@@ -13,7 +13,7 @@ const NAV_ITEMS = [
 const STORAGE_KEY = 'hr-sidebar-collapsed';
 
 export default function Navigation() {
-  const { user, logout } = useAuth();
+  const { user, logout, loggingOut } = useAuth();
 
   // "collapsed" is the user's pinned preference, remembered across visits.
   // Starts collapsed by default.
@@ -90,11 +90,14 @@ export default function Navigation() {
           <button
             className="sidebar-toggle"
             onClick={logout}
+            disabled={loggingOut}
             aria-label="Log out"
             title={!expanded ? `Log out (${user.username})` : undefined}
           >
-            <span className="sidebar-link-icon"><Icon name="logout" size={18} /></span>
-            {expanded && <span>Log out{user.full_name ? ` (${user.full_name})` : ''}</span>}
+            <span className="sidebar-link-icon">
+              {loggingOut ? <span className="btn-spinner" /> : <Icon name="logout" size={18} />}
+            </span>
+            {expanded && <span>{loggingOut ? 'Signing out…' : `Log out${user.full_name ? ` (${user.full_name})` : ''}`}</span>}
           </button>
         )}
         <button

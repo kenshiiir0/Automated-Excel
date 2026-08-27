@@ -29,6 +29,9 @@ const PATHS = {
   alertTriangle: <><path d="M12 4L2.5 20h19L12 4z" /><path d="M12 10.5v4" /><path d="M12 17.2v.1" /></>,
   check: <path d="M4 12.5l5 5L20 6" />,
   door: <><rect x="5" y="3" width="10" height="18" rx="1" /><path d="M15 12v.01" /><path d="M19 21H5" /></>,
+  shield: <><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" /><path d="M9 12l2 2 4-4" /></>,
+  userPlus: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><path d="M18 9v5" /><path d="M15.5 11.5h5" /></>,
+  arrowLeft: <><path d="M19 12H5" /><path d="M11 6l-6 6 6 6" /></>,
 };
 
 export default function Icon({ name, size = 16, strokeWidth = 2, className = '', style = {}, title }) {

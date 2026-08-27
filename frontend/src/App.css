@@ -1809,28 +1809,95 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0F5777, #12678D);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0F5777 0%, #12678D 55%, #1D9FDA 100%);
   padding: 20px;
 }
 
+.login-page-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.login-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  animation: login-blob-float 16s ease-in-out infinite;
+}
+
+.login-blob-1 {
+  width: 420px;
+  height: 420px;
+  background: #61A644;
+  top: -140px;
+  left: -120px;
+  animation-delay: 0s;
+}
+
+.login-blob-2 {
+  width: 340px;
+  height: 340px;
+  background: #1EA0DA;
+  bottom: -120px;
+  right: -80px;
+  animation-delay: -5s;
+}
+
+.login-blob-3 {
+  width: 260px;
+  height: 260px;
+  background: #ffffff;
+  top: 40%;
+  right: 10%;
+  opacity: 0.12;
+  animation-delay: -10s;
+}
+
+@keyframes login-blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -25px) scale(1.08); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
 .login-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 380px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-  padding: 32px 28px;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(4, 26, 41, 0.35), 0 2px 0 rgba(255,255,255,0.6) inset;
+  padding: 36px 32px;
+  animation: login-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes login-card-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .login-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
+}
+
+.login-brand-mark {
+  width: 46px;
+  height: 46px;
+  font-size: 16px;
+  box-shadow: 0 6px 16px rgba(29, 159, 218, 0.35);
 }
 
 .login-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
   color: #1a202c;
   line-height: 1.2;
@@ -1888,5 +1955,114 @@ body {
 .login-password-toggle:hover {
   opacity: 1;
   background: #f0f4f8;
+}
+
+.login-submit-btn {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  display: inline-block;
+  animation: btn-spinner-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes btn-spinner-spin {
+  to { transform: rotate(360deg); }
+}
+
+.login-switch {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #718096;
+}
+
+.login-link-btn {
+  background: none;
+  border: none;
+  color: #1D9FDA;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+
+.login-link-btn:hover {
+  text-decoration: underline;
+}
+
+.login-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #718096;
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 18px;
+}
+
+.login-back-btn:hover {
+  color: #1D9FDA;
+}
+
+.login-step-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a202c;
+  margin-bottom: 6px;
+}
+
+.login-step-heading svg {
+  color: #1D9FDA;
+}
+
+.login-step-subtext {
+  font-size: 13px;
+  color: #718096;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.login-hint {
+  font-size: 11.5px;
+  color: #a0aec0;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.login-otp-input {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  padding-left: 4px;
 }
 

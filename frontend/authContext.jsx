@@ -20,9 +20,9 @@ function installAuthFetch(onUnauthorized) {
     window.fetch = async (input, init = {}) => {
         const url = typeof input === 'string' ? input : input.url;
         const isApiCall = url.startsWith('/api/');
-        const isLoginCall = url.startsWith('/api/auth/login');
+        const isAuthCall = url.startsWith('/api/auth/');
 
-        if (isApiCall && !isLoginCall) {
+        if (isApiCall && !isAuthCall) {
             const token = localStorage.getItem(TOKEN_KEY);
             if (token) {
                 init = {
@@ -33,7 +33,7 @@ function installAuthFetch(onUnauthorized) {
         }
 
         const res = await originalFetch(input, init);
-        if (isApiCall && !isLoginCall && res.status === 401) {
+        if (isApiCall && !isAuthCall && res.status === 401) {
             onUnauthorized();
         }
         return res;
@@ -49,12 +49,23 @@ export function AuthProvider({ children }) {
             return null;
         }
     });
+    // Drives the brief "Signing out..." state on the logged-in shell while
+    // we clear storage and swap back to the login screen -- purely a UI
+    // affordance since logout itself is instant/local, but it stops the
+    // screen from just snapping away with no feedback.
+    const [loggingOut, setLoggingOut] = useState(false);
 
     const logout = useCallback(() => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         setUser(null);
+        setLoggingOut(false);
     }, []);
+
+    const logoutWithDelay = useCallback(() => {
+        setLoggingOut(true);
+        setTimeout(() => logout(), 450);
+    }, [logout]);
 
     useEffect(() => {
         installAuthFetch(logout);
@@ -75,8 +86,36 @@ export function AuthProvider({ children }) {
         setUser(data.user);
     }, []);
 
+    // Signup step 1: send the OTP. Throws with a friendly message on
+    // failure (e.g. wrong domain, already registered) for the form to show.
+    const requestSignupOtp = useCallback(async (email, fullName, password) => {
+        const res = await fetch('/api/auth/signup/request-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, fullName, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not send verification code.');
+        return data;
+    }, []);
+
+    // Signup step 2: verify the code. On success the account is active,
+    // but the user still needs to log in with their new credentials --
+    // we don't auto-login here so the flow ends the same way a normal
+    // login would (deliberate choice, keeps the mental model simple).
+    const verifySignupOtp = useCallback(async (email, code) => {
+        const res = await fetch('/api/auth/signup/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed.');
+        return data;
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, logout: logoutWithDelay, loggingOut, requestSignupOtp, verifySignupOtp }}>
             {children}
         </AuthContext.Provider>
     );
