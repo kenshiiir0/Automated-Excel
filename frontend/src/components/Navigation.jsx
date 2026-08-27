@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/employees', label: 'Employees', icon: 'people' },
   { to: '/recruitment', label: 'Recruitment', icon: 'briefcase' },
   { to: '/interns', label: 'Interns', icon: 'graduationCap' },
+  { to: '/hr-documents', label: 'HR Documents', icon: 'folder' },
 ];
 
 const STORAGE_KEY = 'hr-sidebar-collapsed';

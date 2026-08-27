@@ -4,6 +4,7 @@ import Navigation from './components/Navigation.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Profile from './components/Profile.jsx';
 import UserManagement from './components/UserManagement.jsx';
+import HrDocuments from './components/HrDocuments.jsx';
 import EmployeeList from '../EmployeeList.jsx';
 import RecruitmentTracker from '../RecruitmentTracker.jsx';
 import InternList from '../InternList.jsx';
@@ -34,6 +35,7 @@ function AuthedApp() {
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/recruitment" element={<RecruitmentTracker />} />
             <Route path="/interns" element={<InternList />} />
+            <Route path="/hr-documents" element={<HrDocuments />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/users" element={<UserManagement />} />
           </Routes>
