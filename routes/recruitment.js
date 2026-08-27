@@ -1,5 +1,5 @@
-const express = require('express');
-const { getAllCandidates, createCandidate, updateCandidate, deleteCandidate } = require('../controllers/recruitmentController.js');
+import express from 'express';
+import { getAllCandidates, createCandidate, updateCandidate, deleteCandidate } from '../controllers/recruitmentController.js';
 
 const router = express.Router();
 
@@ -8,4 +8,4 @@ router.post('/candidates', createCandidate);
 router.put('/candidates/:id', updateCandidate);
 router.delete('/candidates/:id', deleteCandidate);
 
-module.exports = router;
+export default router;

@@ -1,5 +1,5 @@
-const express = require('express');
-const { getAllLeaves, getLeavesByEmployee, createLeave, updateLeave } = require('../controllers/leaveController.js');
+import express from 'express';
+import { getAllLeaves, getLeavesByEmployee, createLeave, updateLeave } from '../controllers/leaveController.js';
 
 const router = express.Router();
 
@@ -8,4 +8,4 @@ router.get('/:emp_id', getLeavesByEmployee);
 router.post('/', createLeave);
 router.put('/:id', updateLeave);
 
-module.exports = router;
+export default router;

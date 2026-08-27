@@ -1,4 +1,4 @@
-const { supabaseAdmin } = require('../lib/supabase.js');
+import { supabaseAdmin } from '../lib/supabase.js';
 
 const getEmailDirectory = async (req, res) => {
     try {
@@ -42,4 +42,4 @@ const sendEmail = async (req, res) => {
     }
 };
 
-module.exports = { getEmailDirectory, addToDirectory, sendEmail };
+export { getEmailDirectory, addToDirectory, sendEmail };

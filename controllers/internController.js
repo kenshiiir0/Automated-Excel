@@ -1,19 +1,11 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 
-// NOTE: salary/bank/government-ID/personal-contact/emergency-contact fields
-// used to be stripped from these responses as a stopgap for public
-// deployment before real login existed. Now that every route using this
-// controller sits behind requireAuth (server.js), that stopgap has been
-// removed -- the login wall is the real protection, so the full record is
-// returned again to any authenticated request, same as before the stopgap
-// was ever added.
-
-const getAllEmployees = async (req, res) => {
+const getAllInterns = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
-            .from('employees')
+            .from('interns')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('seq_no', { ascending: true });
 
         if (error) throw error;
         res.json(data);
@@ -22,10 +14,10 @@ const getAllEmployees = async (req, res) => {
     }
 };
 
-const getEmployeeById = async (req, res) => {
+const getInternById = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
-            .from('employees')
+            .from('interns')
             .select('*')
             .eq('id', req.params.id)
             .single();
@@ -37,13 +29,15 @@ const getEmployeeById = async (req, res) => {
     }
 };
 
-const createEmployee = async (req, res) => {
+const createIntern = async (req, res) => {
     try {
-        const { emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary } = req.body;
+        const { last_name, first_name, middle_name, middle_initial, complete_name,
+                hire_date, birthday, address, contact_no, email, school, department } = req.body;
 
         const { data, error } = await supabaseAdmin
-            .from('employees')
-            .insert([{ emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary }])
+            .from('interns')
+            .insert([{ last_name, first_name, middle_name, middle_initial, complete_name,
+                       hire_date, birthday, address, contact_no, email, school, department }])
             .select();
 
         if (error) throw error;
@@ -53,10 +47,10 @@ const createEmployee = async (req, res) => {
     }
 };
 
-const updateEmployee = async (req, res) => {
+const updateIntern = async (req, res) => {
     try {
         const { data, error } = await supabaseAdmin
-            .from('employees')
+            .from('interns')
             .update(req.body)
             .eq('id', req.params.id)
             .select();
@@ -68,18 +62,18 @@ const updateEmployee = async (req, res) => {
     }
 };
 
-const deleteEmployee = async (req, res) => {
+const deleteIntern = async (req, res) => {
     try {
         const { error } = await supabaseAdmin
-            .from('employees')
+            .from('interns')
             .delete()
             .eq('id', req.params.id);
 
         if (error) throw error;
-        res.json({ message: 'Employee deleted' });
+        res.json({ message: 'Intern record deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-export { getAllEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee };
+export { getAllInterns, getInternById, createIntern, updateIntern, deleteIntern };

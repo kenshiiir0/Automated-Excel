@@ -1,4 +1,4 @@
-const { supabaseAdmin } = require('../lib/supabase.js');
+import { supabaseAdmin } from '../lib/supabase.js';
 
 const getAllLeaves = async (req, res) => {
     try {
@@ -59,4 +59,4 @@ const updateLeave = async (req, res) => {
     }
 };
 
-module.exports = { getAllLeaves, getLeavesByEmployee, createLeave, updateLeave };
+export { getAllLeaves, getLeavesByEmployee, createLeave, updateLeave };
