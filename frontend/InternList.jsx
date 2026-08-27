@@ -3,6 +3,7 @@ import Icon from './Icon.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
 import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
+import ExportConfirmModal from './ExportConfirmModal.jsx';
 
 // Mirrors the on-screen table columns -- see the <thead> further down.
 const INTERN_EXPORT_COLUMNS = [
@@ -38,6 +39,7 @@ export default function InternList() {
   const canWrite = user?.role === 'admin' || user?.role === 'super_admin';
 
   const [showForm, setShowForm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
@@ -146,11 +148,7 @@ export default function InternList() {
           <button
             className="btn-ghost"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            onClick={() => exportRowsToExcel(
-              filtered,
-              INTERN_EXPORT_COLUMNS,
-              { fileName: `interns_${todayStamp()}.xlsx`, sheetName: 'Interns' }
-            )}
+            onClick={() => setShowExportConfirm(true)}
             disabled={filtered.length === 0}
             title="Exports exactly what's currently shown -- your search and filters apply"
           >
@@ -203,6 +201,23 @@ export default function InternList() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showExportConfirm && (
+        <ExportConfirmModal
+          itemLabel="intern"
+          filteredCount={filtered.length}
+          totalCount={interns.length}
+          onClose={() => setShowExportConfirm(false)}
+          onConfirm={() => {
+            exportRowsToExcel(
+              filtered,
+              INTERN_EXPORT_COLUMNS,
+              { fileName: `interns_${todayStamp()}.xlsx`, sheetName: 'Interns' }
+            );
+            setShowExportConfirm(false);
+          }}
+        />
       )}
 
       <div className="search-filter-bar">

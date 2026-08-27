@@ -3,6 +3,7 @@ import Icon from './Icon.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
 import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
+import ExportConfirmModal from './ExportConfirmModal.jsx';
 
 // Mirrors the on-screen table columns -- see the <thead> further down.
 const CANDIDATE_EXPORT_COLUMNS = [
@@ -77,6 +78,7 @@ export default function RecruitmentTracker() {
   const canWrite = user?.role === 'admin' || user?.role === 'super_admin';
 
   const [showForm, setShowForm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
@@ -236,11 +238,7 @@ export default function RecruitmentTracker() {
           <button
             className="btn-ghost"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            onClick={() => exportRowsToExcel(
-              filtered,
-              CANDIDATE_EXPORT_COLUMNS,
-              { fileName: `recruitment_${todayStamp()}.xlsx`, sheetName: 'Recruitment' }
-            )}
+            onClick={() => setShowExportConfirm(true)}
             disabled={filtered.length === 0}
             title="Exports exactly what's currently shown -- your search, status, and recruiter filters apply"
           >
@@ -339,6 +337,23 @@ export default function RecruitmentTracker() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showExportConfirm && (
+        <ExportConfirmModal
+          itemLabel="candidate"
+          filteredCount={filtered.length}
+          totalCount={candidates.length}
+          onClose={() => setShowExportConfirm(false)}
+          onConfirm={() => {
+            exportRowsToExcel(
+              filtered,
+              CANDIDATE_EXPORT_COLUMNS,
+              { fileName: `recruitment_${todayStamp()}.xlsx`, sheetName: 'Recruitment' }
+            );
+            setShowExportConfirm(false);
+          }}
+        />
       )}
 
       {/* Search & Filters */}

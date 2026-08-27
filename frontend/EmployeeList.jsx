@@ -4,6 +4,7 @@ import Modal from './Modal.jsx';
 import Icon from './Icon.jsx';
 import { useAuth } from './authContext.jsx';
 import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
+import ExportConfirmModal from './ExportConfirmModal.jsx';
 
 // Column order/labels for the exported file -- mirrors the on-screen
 // table columns (see the <thead> below) plus a couple of fields that
@@ -171,6 +172,7 @@ export default function EmployeeList() {
   const canWrite = user?.role === 'admin' || user?.role === 'super_admin';
 
   const [showForm, setShowForm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
@@ -325,11 +327,7 @@ export default function EmployeeList() {
           <button
             className="btn-ghost"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            onClick={() => exportRowsToExcel(
-              filtered,
-              EMPLOYEE_EXPORT_COLUMNS,
-              { fileName: `employees_${todayStamp()}.xlsx`, sheetName: 'Employees' }
-            )}
+            onClick={() => setShowExportConfirm(true)}
             disabled={filtered.length === 0}
             title="Exports exactly what's currently shown -- your search and filters apply"
           >
@@ -401,6 +399,23 @@ export default function EmployeeList() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {showExportConfirm && (
+        <ExportConfirmModal
+          itemLabel="employee"
+          filteredCount={filtered.length}
+          totalCount={employees.length}
+          onClose={() => setShowExportConfirm(false)}
+          onConfirm={() => {
+            exportRowsToExcel(
+              filtered,
+              EMPLOYEE_EXPORT_COLUMNS,
+              { fileName: `employees_${todayStamp()}.xlsx`, sheetName: 'Employees' }
+            );
+            setShowExportConfirm(false);
+          }}
+        />
       )}
 
       {/* Search & Filters */}
