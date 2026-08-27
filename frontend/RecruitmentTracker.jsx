@@ -2,6 +2,25 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Icon from './Icon.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
+import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
+
+// Mirrors the on-screen table columns -- see the <thead> further down.
+const CANDIDATE_EXPORT_COLUMNS = [
+  { header: 'Candidate Name', key: 'candidate_name' },
+  { header: 'Position', key: 'position' },
+  { header: 'Department', key: 'department' },
+  { header: 'Recruiter', key: 'recruiter' },
+  { header: 'Previous Company', key: 'previous_company' },
+  { header: 'Status', key: 'status' },
+  { header: 'Remarks', key: 'remarks' },
+  {
+    header: 'Date Added',
+    key: 'requested_date',
+    format: (row) => row.requested_date ? new Date(row.requested_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+  },
+  { header: 'Email', key: 'email' },
+  { header: 'Phone', key: 'phone' },
+];
 
 const STATUS_META = {
   Open:       { bg: '#fff3e0', color: '#e65100', dot: '#fb8c00' },
@@ -213,11 +232,26 @@ export default function RecruitmentTracker() {
           <h1 className="page-title">Recruitment Pipeline</h1>
           <p className="page-subtitle">Track and manage all active candidates</p>
         </div>
-        {canWrite && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Add Candidate
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn-ghost"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            onClick={() => exportRowsToExcel(
+              filtered,
+              CANDIDATE_EXPORT_COLUMNS,
+              { fileName: `recruitment_${todayStamp()}.xlsx`, sheetName: 'Recruitment' }
+            )}
+            disabled={filtered.length === 0}
+            title="Exports exactly what's currently shown -- your search, status, and recruiter filters apply"
+          >
+            <Icon name="download" size={14} /> Export to Excel
           </button>
-        )}
+          {canWrite && (
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + Add Candidate
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Row */}

@@ -2,6 +2,28 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Icon from './Icon.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
+import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
+
+// Mirrors the on-screen table columns -- see the <thead> further down.
+const INTERN_EXPORT_COLUMNS = [
+  { header: 'First Name', key: 'first_name' },
+  { header: 'Last Name', key: 'last_name' },
+  { header: 'Department', key: 'department' },
+  { header: 'School', key: 'school' },
+  { header: 'Contact No.', key: 'contact_no' },
+  { header: 'Email', key: 'email' },
+  {
+    header: 'Birthday',
+    key: 'birthday',
+    format: (row) => row.birthday ? new Date(row.birthday).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+  },
+  {
+    header: 'Hire Date',
+    key: 'hire_date',
+    format: (row) => row.hire_date ? new Date(row.hire_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+  },
+  { header: 'Address', key: 'address' },
+];
 
 const EMPTY_FORM = {
   last_name: '', first_name: '', middle_name: '', middle_initial: '',
@@ -120,11 +142,26 @@ export default function InternList() {
           <h1 className="page-title">Intern Masterfile</h1>
           <p className="page-subtitle">All intern records on file, across every school and department</p>
         </div>
-        {canWrite && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Add Intern
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn-ghost"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            onClick={() => exportRowsToExcel(
+              filtered,
+              INTERN_EXPORT_COLUMNS,
+              { fileName: `interns_${todayStamp()}.xlsx`, sheetName: 'Interns' }
+            )}
+            disabled={filtered.length === 0}
+            title="Exports exactly what's currently shown -- your search and filters apply"
+          >
+            <Icon name="download" size={14} /> Export to Excel
           </button>
-        )}
+          {canWrite && (
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + Add Intern
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="page-kpi-row">

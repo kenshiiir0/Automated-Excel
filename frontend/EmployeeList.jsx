@@ -3,6 +3,29 @@ import EmployeeDetailModal from './src/components/EmployeeDetailModal.jsx';
 import Modal from './Modal.jsx';
 import Icon from './Icon.jsx';
 import { useAuth } from './authContext.jsx';
+import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
+
+// Column order/labels for the exported file -- mirrors the on-screen
+// table columns (see the <thead> below) plus a couple of fields that
+// don't fit in the table itself (phone, full hire date) but are useful
+// in a spreadsheet. format() lets a column combine fields (name) or
+// reformat a raw value (date) without reshaping the row data first.
+const EMPLOYEE_EXPORT_COLUMNS = [
+  { header: 'Employee ID', key: 'emp_id' },
+  { header: 'First Name', key: 'first_name' },
+  { header: 'Last Name', key: 'last_name' },
+  { header: 'Department', key: 'department' },
+  { header: 'Position', key: 'position' },
+  { header: 'Classification', key: 'employment_classification' },
+  { header: 'Status', key: 'employment_status' },
+  {
+    header: 'Hire Date',
+    key: 'hire_date',
+    format: (row) => row.hire_date ? new Date(row.hire_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '',
+  },
+  { header: 'Email', key: 'email' },
+  { header: 'Phone', key: 'phone' },
+];
 
 const STATUS_COLORS = {
   Active: { bg: '#e6f4ea', color: '#137333', dot: '#34a853' },
@@ -298,11 +321,26 @@ export default function EmployeeList() {
           <h1 className="page-title">Employee Directory</h1>
           <p className="page-subtitle">Manage and view all employee records</p>
         </div>
-        {canWrite && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            + Add Employee
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn-ghost"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            onClick={() => exportRowsToExcel(
+              filtered,
+              EMPLOYEE_EXPORT_COLUMNS,
+              { fileName: `employees_${todayStamp()}.xlsx`, sheetName: 'Employees' }
+            )}
+            disabled={filtered.length === 0}
+            title="Exports exactly what's currently shown -- your search and filters apply"
+          >
+            <Icon name="download" size={14} /> Export to Excel
           </button>
-        )}
+          {canWrite && (
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              + Add Employee
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Summary */}

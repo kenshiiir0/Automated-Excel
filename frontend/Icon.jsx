@@ -33,6 +33,7 @@ const PATHS = {
   shield: <><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" /><path d="M9 12l2 2 4-4" /></>,
   userPlus: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><path d="M18 9v5" /><path d="M15.5 11.5h5" /></>,
   arrowLeft: <><path d="M19 12H5" /><path d="M11 6l-6 6 6 6" /></>,
+  download: <><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M4 19h16" /></>,
 };
 
 export default function Icon({ name, size = 16, strokeWidth = 2, className = '', style = {}, title }) {
