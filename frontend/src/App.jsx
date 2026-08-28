@@ -7,6 +7,7 @@ import UserManagement from './components/UserManagement.jsx';
 import History from './components/History.jsx';
 import HrDocuments from './components/HrDocuments.jsx';
 import DisciplinaryMemos from './components/DisciplinaryMemos.jsx';
+import SendFiles from './components/SendFiles.jsx';
 import EmployeeList from '../EmployeeList.jsx';
 import RecruitmentTracker from '../RecruitmentTracker.jsx';
 import InternList from '../InternList.jsx';
@@ -37,6 +38,7 @@ const PAGES = [
   { path: '/interns', Component: InternList, keepAlive: true },
   { path: '/hr-documents', Component: HrDocuments, keepAlive: false },
   { path: '/disciplinary-memos', Component: DisciplinaryMemos, keepAlive: true },
+  { path: '/send-files', Component: SendFiles, keepAlive: true },
   { path: '/profile', Component: Profile, keepAlive: true },
   { path: '/users', Component: UserManagement, keepAlive: true },
   { path: '/history', Component: History, keepAlive: false },

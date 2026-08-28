@@ -2947,3 +2947,64 @@ button.profile-status-pill {
   padding-left: 4px;
 }
 
+
+/* Drag-and-drop file zone for the Send Files page. Neutral/dashed at
+   rest, blue-highlighted while a file is being dragged over it (the
+   dragActive state in SendFiles.jsx), and swaps to a solid chip once a
+   file is chosen -- mirrors the visual weight of .emp-form-input so it
+   sits naturally in the same form grid. */
+.file-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 28px 16px;
+  border: 2px dashed #cbd5e0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #718096;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.file-drop-zone:hover {
+  border-color: #1D9FDA;
+  background: #f0f9ff;
+}
+
+.file-drop-zone-active {
+  border-color: #1D9FDA;
+  background: #f0f9ff;
+}
+
+.file-drop-zone-text {
+  margin: 0;
+  font-size: 13.5px;
+  color: #4a5568;
+}
+
+.file-drop-zone-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #a0aec0;
+}
+
+.file-drop-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+}
+
+.file-drop-chip-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #1a202c;
+}
+
+.file-drop-chip-size {
+  font-size: 12px;
+  color: #a0aec0;
+}

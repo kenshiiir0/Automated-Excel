@@ -15,6 +15,8 @@ import usersRoutes from './routes/users.js';
 import zohoWorkdriveRoutes from './routes/zohoWorkdrive.js';
 import disciplinaryMemosRoutes from './routes/disciplinaryMemos.js';
 import auditLogRoutes from './routes/auditLog.js';
+import distributionTrackerRoutes from './routes/distributionTracker.js';
+import fileShareRoutes from './routes/fileShare.js';
 import { requireAuth } from './lib/requireAuth.js';
 import { apiLimiter } from './lib/rateLimiters.js';
 
@@ -60,6 +62,9 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
 app.use('/api/audit-log', requireAuth, auditLogRoutes);
 
+// Distribution Tracker - Inventory system for Oojeema sales tracking
+app.use('/api/distribution', requireAuth, distributionTrackerRoutes);
+
 // zohoWorkdriveRoutes applies its own per-route auth (requireAuth +
 // requireRole where needed) rather than a blanket requireAuth here,
 // because /callback must stay reachable by Zoho's plain browser redirect
@@ -67,6 +72,7 @@ app.use('/api/audit-log', requireAuth, auditLogRoutes);
 // to be gated.
 app.use('/api', zohoWorkdriveRoutes);
 app.use('/api', requireAuth, disciplinaryMemosRoutes);
+app.use('/api', requireAuth, fileShareRoutes);
 
 // /api/zoho/* is deliberately NOT behind requireAuth -- it has its own,
 // separate API-key check (see lib/apiKeyAuth.js) because it's meant to be
