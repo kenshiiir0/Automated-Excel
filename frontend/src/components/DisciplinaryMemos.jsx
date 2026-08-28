@@ -155,6 +155,25 @@ export default function DisciplinaryMemos({ visible } = {}) {
         ? employees.filter(e => `${e.first_name || ''} ${e.last_name || ''}`.toLowerCase().includes(employeeSearch.toLowerCase()))
         : [];
 
+    // Groups the flat companyRules list (Rule 1.1, 1.2, ... 10.7, OTHER)
+    // into per-category buckets, in first-seen order, so the dropdown can
+    // render one <optgroup> per Rule 1-10 instead of a single unbroken
+    // 76-item list -- the real Code of Conduct rule book is this large,
+    // so grouping is what keeps it usable.
+    const ruleGroups = React.useMemo(() => {
+        const order = [];
+        const byCategory = new Map();
+        for (const r of companyRules) {
+            const cat = r.category || 'OTHER';
+            if (!byCategory.has(cat)) {
+                byCategory.set(cat, { category: cat, categoryLabel: r.categoryLabel || cat, rules: [] });
+                order.push(cat);
+            }
+            byCategory.get(cat).rules.push(r);
+        }
+        return order.map(cat => byCategory.get(cat));
+    }, [companyRules]);
+
     const canGenerate = selectedEmployee && memoType && ruleText.trim() && incidentNarrative.trim()
         && (memoType !== 'FINAL_WRITTEN_WARNING' || priorWarningNote.trim());
 
@@ -391,8 +410,16 @@ export default function DisciplinaryMemos({ visible } = {}) {
                             onChange={e => handleRuleCodeChange(e.target.value)}
                         >
                             <option value="" disabled>Select the rule violated…</option>
-                            {companyRules.map(r => (
-                                <option key={r.code} value={r.code}>{r.code === 'OTHER' ? r.text : `Rule ${r.code} — ${r.text.replace(/^Rule No\. [0-9.]+ /, '')}`}</option>
+                            {ruleGroups.map(group => (
+                                group.category === 'OTHER' ? (
+                                    group.rules.map(r => <option key={r.code} value={r.code}>{r.text}</option>)
+                                ) : (
+                                    <optgroup key={group.category} label={group.categoryLabel}>
+                                        {group.rules.map(r => (
+                                            <option key={r.code} value={r.code}>{`${r.code} — ${r.text.replace(/^Rule No\. [0-9.]+ /, '')}`}</option>
+                                        ))}
+                                    </optgroup>
+                                )
                             ))}
                         </select>
                         {ruleCode === 'OTHER' && (
