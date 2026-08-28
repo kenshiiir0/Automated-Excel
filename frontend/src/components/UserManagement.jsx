@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from '../../Icon.jsx';
+import CustomSelect from '../../CustomSelect.jsx';
 import Modal from '../../Modal.jsx';
 import { useAuth } from '../../authContext.jsx';
 
@@ -155,11 +156,16 @@ function CreateAccountModal({ onClose, onCreated, showToast }) {
                     </div>
                     <div className="emp-form-group">
                         <label className="emp-form-label">Role</label>
-                        <select className="emp-form-input" value={form.role} onChange={handleChange('role')}>
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Super Admin</option>
-                        </select>
+                        <CustomSelect
+                            className="emp-form-input"
+                            value={form.role}
+                            onChange={v => handleChange('role')({ target: { value: v } })}
+                            options={[
+                                { value: 'user', label: 'User' },
+                                { value: 'admin', label: 'Admin' },
+                                { value: 'super_admin', label: 'Super Admin' },
+                            ]}
+                        />
                     </div>
                 </div>
                 <p style={{ fontSize: 12, color: '#a0aec0', marginTop: 4 }}>
@@ -349,17 +355,18 @@ export default function UserManagement({ visible } = {}) {
                                     <td style={{ fontSize: 12, color: '#718096' }}>{u.email || u.username}</td>
                                     <td>
                                         {canEditThis ? (
-                                            <select
+                                            <CustomSelect
                                                 className="filter-select"
                                                 value={u.role}
                                                 disabled={savingId === u.id}
-                                                onChange={e => handleRoleChange(u.id, e.target.value)}
-                                                style={{ fontSize: 12, padding: '6px 10px' }}
-                                            >
-                                                <option value="user">User</option>
-                                                <option value="admin">Admin</option>
-                                                <option value="super_admin">Super Admin</option>
-                                            </select>
+                                                onChange={v => handleRoleChange(u.id, v)}
+                                                style={{ fontSize: 12 }}
+                                                options={[
+                                                    { value: 'user', label: 'User' },
+                                                    { value: 'admin', label: 'Admin' },
+                                                    { value: 'super_admin', label: 'Super Admin' },
+                                                ]}
+                                            />
                                         ) : (
                                             <RolePill role={u.role} />
                                         )}

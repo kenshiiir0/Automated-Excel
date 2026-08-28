@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Icon from '../../Icon.jsx';
+import CustomSelect from '../../CustomSelect.jsx';
 
 // ---------------------------------------------------------------------------
 // History -- one page covering everything the user asked for: "add one for
@@ -152,20 +153,30 @@ function ActivityLogTab() {
                     />
                     {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
                 </div>
-                <select className="filter-select" value={filterEntity} onChange={e => setFilterEntity(e.target.value)}>
-                    <option value="All">All Record Types</option>
-                    <option value="employee">Employees</option>
-                    <option value="intern">Interns</option>
-                    <option value="candidate">Recruitment Candidates</option>
-                    <option value="user">User Accounts</option>
-                </select>
-                <select className="filter-select" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
-                    <option value="All">All Actions</option>
-                    <option value="create">Created</option>
-                    <option value="update">Edited</option>
-                    <option value="archive">Archived</option>
-                    <option value="restore">Restored</option>
-                </select>
+                <CustomSelect
+                    className="filter-select"
+                    value={filterEntity}
+                    onChange={setFilterEntity}
+                    options={[
+                        { value: 'All', label: 'All Record Types' },
+                        { value: 'employee', label: 'Employees' },
+                        { value: 'intern', label: 'Interns' },
+                        { value: 'candidate', label: 'Recruitment Candidates' },
+                        { value: 'user', label: 'User Accounts' },
+                    ]}
+                />
+                <CustomSelect
+                    className="filter-select"
+                    value={filterAction}
+                    onChange={setFilterAction}
+                    options={[
+                        { value: 'All', label: 'All Actions' },
+                        { value: 'create', label: 'Created' },
+                        { value: 'update', label: 'Edited' },
+                        { value: 'archive', label: 'Archived' },
+                        { value: 'restore', label: 'Restored' },
+                    ]}
+                />
                 <span className="results-count">{total} total {total === 1 ? 'entry' : 'entries'}</span>
             </div>
 
@@ -333,11 +344,12 @@ function ArchivedRecordsTab({ showToast }) {
                     />
                     {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
                 </div>
-                <select className="filter-select" value={entityType} onChange={e => setEntityType(e.target.value)}>
-                    {Object.entries(ENTITY_META).map(([key, m]) => (
-                        <option key={key} value={key}>{m.plural}</option>
-                    ))}
-                </select>
+                <CustomSelect
+                    className="filter-select"
+                    value={entityType}
+                    onChange={setEntityType}
+                    options={Object.entries(ENTITY_META).map(([key, m]) => ({ value: key, label: m.plural }))}
+                />
                 <span className="results-count">{filtered.length} archived {filtered.length === 1 ? meta.label.toLowerCase() : meta.plural.toLowerCase()}</span>
             </div>
 

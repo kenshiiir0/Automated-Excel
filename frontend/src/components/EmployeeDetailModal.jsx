@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Icon from '../../Icon.jsx';
+import CustomSelect from '../../CustomSelect.jsx';
 import { useAuth } from '../../authContext.jsx';
 
 // ---------------------------------------------------------------------------
@@ -78,10 +79,12 @@ function EditableField({ label, name, value, editing, onChange, type = 'text', o
     <div className="emp-form-group emp-detail-edit-field">
       <label className="emp-form-label">{label}</label>
       {type === 'select' ? (
-        <select className="emp-form-input" value={value ?? ''} onChange={e => onChange(name, e.target.value)}>
-          <option value="">—</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <CustomSelect
+          className="emp-form-input"
+          value={value ?? ''}
+          onChange={v => onChange(name, v)}
+          options={[{ value: '', label: '—' }, ...options.map(o => ({ value: o, label: o }))]}
+        />
       ) : (
         <input
           className="emp-form-input"
@@ -138,21 +141,19 @@ function SeparationReasonField({ value, editing, onChange }) {
           onChange={e => onChange('separation_reason', e.target.value)}
         />
       ) : (
-        <select
+        <CustomSelect
           className="emp-form-input"
           value={value ?? ''}
-          onChange={e => {
-            if (e.target.value === 'Other') {
+          onChange={v => {
+            if (v === 'Other') {
               setUsingOther(true);
               onChange('separation_reason', '');
             } else {
-              onChange('separation_reason', e.target.value);
+              onChange('separation_reason', v);
             }
           }}
-        >
-          <option value="">—</option>
-          {SEPARATION_REASONS.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+          options={[{ value: '', label: '—' }, ...SEPARATION_REASONS.map(o => ({ value: o, label: o }))]}
+        />
       )}
       {usingOther && (
         <button

@@ -3134,3 +3134,92 @@ button.profile-status-pill {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* =====================================================
+   CUSTOM SELECT (shared dropdown look used across the app)
+   Same visual language as the Company Rule Violated picker in
+   Disciplinary Memos -- rounded floating panel, hover-highlighted rows,
+   custom arrow icon -- applied to every plain dropdown in the system
+   (Memo Type, Role, Reason for Leaving, Employment Status, History
+   filters, etc). Unlike the Company Rule picker, these have short fixed
+   option lists, so there's no search box, grouping, or hover-preview
+   tooltip here -- just the click-to-open/click-to-pick panel.
+   ===================================================== */
+.custom-select-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-select-control:focus {
+  outline: none;
+  border-color: #1D9FDA;
+  box-shadow: 0 0 0 3px rgba(30,129,119,0.1);
+}
+
+.custom-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-placeholder {
+  color: #a0aec0;
+}
+
+.custom-select-arrow {
+  flex-shrink: 0;
+  color: #a0aec0;
+  transition: transform 0.15s ease;
+}
+
+.custom-select-arrow-open {
+  transform: rotate(180deg);
+}
+
+.custom-select-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.custom-select-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  animation: ruleTooltipFadeIn 0.12s ease-out;
+}
+
+.custom-select-row {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #2d3748;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.custom-select-row:last-child {
+  border-bottom: none;
+}
+
+.custom-select-row:hover {
+  background: #f0f9ff;
+}
+
+.custom-select-row-active {
+  background: #eaf9f7;
+  color: #0F5777;
+  font-weight: 600;
+}
+

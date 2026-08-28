@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from '../../Icon.jsx';
+import CustomSelect from '../../CustomSelect.jsx';
 import Modal from '../../Modal.jsx';
 
 const NARRATIVE_STARTERS = {
@@ -455,9 +456,12 @@ export default function DisciplinaryMemos({ visible } = {}) {
 
                     <div className="emp-form-group">
                         <label className="emp-form-label">Memo Type</label>
-                        <select className="emp-form-input" value={memoType} onChange={e => setMemoType(e.target.value)}>
-                            {memoTypes.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-                        </select>
+                        <CustomSelect
+                            className="emp-form-input"
+                            value={memoType}
+                            onChange={setMemoType}
+                            options={memoTypes.map(t => ({ value: t.key, label: t.label }))}
+                        />
                     </div>
 
                     <div className="emp-form-group" style={{ gridColumn: '1 / -1', position: 'relative' }} ref={ruleFieldRef}>
