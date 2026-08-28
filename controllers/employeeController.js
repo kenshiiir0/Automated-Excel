@@ -75,11 +75,32 @@ const getEmployeeById = async (req, res) => {
     }
 };
 
+const EMPLOYEE_WRITABLE_FIELDS = [
+    'emp_id', 'first_name', 'last_name', 'middle_name',
+    'email', 'personal_email', 'zoho_email', 'phone',
+    'date_of_birth', 'gender', 'marital_status', 'citizenship', 'complete_address',
+    'department', 'position', 'new_designation', 'position_category',
+    'employment_status', 'employment_classification', 'employment_contract_status',
+    'work_arrangement', 'territory', 'reporting_to',
+    'hire_date', 'regularization_date', 'exit_date',
+    'job_description', 'company_rules',
+    'salary', 'bank_name', 'bank_account',
+    'sss_number', 'philhealth_number', 'hdmf_number', 'tin_number',
+    'company_issued_no', 'issued_equipment',
+    'emergency_contact_person', 'relationship', 'emergency_contact_details',
+];
+
 const createEmployee = async (req, res) => {
     try {
-        const { emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary } = req.body;
+        const rawPayload = {};
+        for (const key of EMPLOYEE_WRITABLE_FIELDS) {
+            if (req.body[key] !== undefined) rawPayload[key] = req.body[key];
+        }
+        if (!rawPayload.emp_id || !rawPayload.first_name || !rawPayload.last_name) {
+            return res.status(400).json({ error: 'Employee ID, first name, and last name are required.' });
+        }
 
-        const payload = stripSensitiveFieldsFromWrite(req, { emp_id, first_name, last_name, email, phone, department, position, employment_status, hire_date, salary });
+        const payload = stripSensitiveFieldsFromWrite(req, rawPayload);
 
         const { data, error } = await supabaseAdmin
             .from('employees')

@@ -41,6 +41,7 @@ export default function InternList() {
   const [showForm, setShowForm] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [otherFields, setOtherFields] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -75,18 +76,27 @@ export default function InternList() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = { ...formData, complete_name: `${formData.last_name}, ${formData.first_name}` };
+      for (const key of Object.keys(payload)) {
+        if (payload[key] === '') payload[key] = null;
+      }
+
       const res = await fetch('/api/interns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, complete_name: `${formData.last_name}, ${formData.first_name}` })
+        body: JSON.stringify(payload)
       });
       const newIntern = await res.json();
+      if (!res.ok) {
+        throw new Error(newIntern?.error || 'Could not add this intern.');
+      }
       setInterns([newIntern, ...interns]);
       setFormData(EMPTY_FORM);
+      setOtherFields({});
       setShowForm(false);
       showToast(`${formData.first_name} ${formData.last_name} added.`);
     } catch (err) {
-      showToast('Failed to add intern.', 'error');
+      showToast(err.message || 'Failed to add intern.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -121,19 +131,62 @@ export default function InternList() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, currentPage]);
 
-  const field = (label, key, type = 'text', opts = {}) => (
-    <div className="emp-form-group">
-      <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
-      <input
-        className="emp-form-input"
-        type={type}
-        placeholder={opts.placeholder || label}
-        value={formData[key]}
-        onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-        required={opts.required}
-      />
-    </div>
-  );
+  const field = (label, key, type = 'text', opts = {}) => {
+    if (opts.dropdownOr) {
+      const isOther = otherFields[key];
+      const knownOptions = opts.dropdownOr;
+      const currentValueIsKnown = knownOptions.includes(formData[key]);
+      return (
+        <div className="emp-form-group">
+          <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
+          <select
+            className="emp-form-input"
+            value={isOther ? 'OTHER' : (currentValueIsKnown ? formData[key] : '')}
+            onChange={e => {
+              if (e.target.value === 'OTHER') {
+                setOtherFields({ ...otherFields, [key]: true });
+                setFormData({ ...formData, [key]: '' });
+              } else {
+                setOtherFields({ ...otherFields, [key]: false });
+                setFormData({ ...formData, [key]: e.target.value });
+              }
+            }}
+            required={opts.required && !isOther}
+          >
+            <option value="" disabled>Select {label.toLowerCase()}…</option>
+            {knownOptions.map(o => <option key={o} value={o}>{o}</option>)}
+            <option value="OTHER">Other (type manually)</option>
+          </select>
+          {isOther && (
+            <input
+              className="emp-form-input"
+              style={{ marginTop: 8 }}
+              type="text"
+              placeholder={`Type the ${label.toLowerCase()}…`}
+              value={formData[key]}
+              onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+              required={opts.required}
+              autoFocus
+            />
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="emp-form-group">
+        <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
+        <input
+          className="emp-form-input"
+          type={type}
+          placeholder={opts.placeholder || label}
+          value={formData[key]}
+          onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+          required={opts.required}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="page-container">
@@ -190,8 +243,8 @@ export default function InternList() {
               {field('Address', 'address')}
               {field('Contact No.', 'contact_no', 'tel')}
               {field('Email', 'email', 'email')}
-              {field('School', 'school')}
-              {field('Department', 'department')}
+              {field('School', 'school', 'text', { dropdownOr: schools })}
+              {field('Department', 'department', 'text', { dropdownOr: departments })}
             </div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
               <button type="button" className="btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>

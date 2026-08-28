@@ -159,10 +159,19 @@ function RowActionsMenu({ onView }) {
 }
 
 const EMPTY_FORM = {
-  emp_id: '', first_name: '', last_name: '', email: '',
-  phone: '', department: '', position: '',
+  emp_id: '', first_name: '', last_name: '', middle_name: '',
+  email: '', personal_email: '', zoho_email: '', phone: '',
+  date_of_birth: '', gender: '', marital_status: '', citizenship: '',
+  complete_address: '',
+  department: '', position: '', new_designation: '', position_category: '',
   employment_status: 'Active', employment_classification: 'Probationary',
-  hire_date: '', salary: ''
+  employment_contract_status: '', work_arrangement: '', territory: '',
+  reporting_to: '', hire_date: '', regularization_date: '', exit_date: '',
+  job_description: '', company_rules: '',
+  salary: '', bank_name: '', bank_account: '',
+  sss_number: '', philhealth_number: '', hdmf_number: '', tin_number: '',
+  company_issued_no: '', issued_equipment: '',
+  emergency_contact_person: '', relationship: '', emergency_contact_details: '',
 };
 
 export default function EmployeeList() {
@@ -174,6 +183,7 @@ export default function EmployeeList() {
   const [showForm, setShowForm] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [otherFields, setOtherFields] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [selectedEmpId, setSelectedEmpId] = useState(null);
@@ -213,18 +223,27 @@ export default function EmployeeList() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = {};
+      for (const [key, value] of Object.entries(formData)) {
+        payload[key] = value === '' ? null : value;
+      }
+
       const res = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       const newEmp = await res.json();
+      if (!res.ok) {
+        throw new Error(newEmp?.error || 'Could not add this employee.');
+      }
       setEmployees([newEmp, ...employees]);
       setFormData(EMPTY_FORM);
+      setOtherFields({});
       setShowForm(false);
       showToast(`${formData.first_name} ${formData.last_name} added successfully!`);
     } catch (err) {
-      showToast('Failed to add employee.', 'error');
+      showToast(err.message || 'Failed to add employee.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -235,6 +254,13 @@ export default function EmployeeList() {
     const depts = [...new Set(employees.map(e => e.department).filter(Boolean))].sort();
     return depts;
   }, [employees]);
+
+  const positions = useMemo(() =>
+    [...new Set(employees.map(e => e.position).filter(Boolean))].sort()
+  , [employees]);
+  const positionCategories = useMemo(() =>
+    [...new Set(employees.map(e => e.position_category).filter(Boolean))].sort()
+  , [employees]);
 
   // Filtered + searched list. Incomplete records (missing a core field like
   // department or hire date) are always sorted to the top of whatever the
@@ -285,30 +311,89 @@ export default function EmployeeList() {
   const probCount = employees.filter(e => e.employment_classification === 'Probationary').length;
   const incompleteCount = employees.filter(e => e.is_incomplete === true || e.is_incomplete === 'TRUE' || e.is_incomplete === 'true').length;
 
-  const field = (label, key, type = 'text', opts = {}) => (
-    <div className="emp-form-group">
-      <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
-      {opts.select ? (
-        <select
-          className="emp-form-input"
-          value={formData[key]}
-          onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-          required={opts.required}
-        >
-          {opts.options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : (
-        <input
-          className="emp-form-input"
-          type={type}
-          placeholder={opts.placeholder || label}
-          value={formData[key]}
-          onChange={e => setFormData({ ...formData, [key]: e.target.value })}
-          required={opts.required}
-        />
-      )}
-    </div>
-  );
+  const field = (label, key, type = 'text', opts = {}) => {
+    if (opts.dropdownOr) {
+      const isOther = otherFields[key];
+      const knownOptions = opts.dropdownOr;
+      const currentValueIsKnown = knownOptions.includes(formData[key]);
+      return (
+        <div className="emp-form-group">
+          <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
+          <select
+            className="emp-form-input"
+            value={isOther ? 'OTHER' : (currentValueIsKnown ? formData[key] : '')}
+            onChange={e => {
+              if (e.target.value === 'OTHER') {
+                setOtherFields({ ...otherFields, [key]: true });
+                setFormData({ ...formData, [key]: '' });
+              } else {
+                setOtherFields({ ...otherFields, [key]: false });
+                setFormData({ ...formData, [key]: e.target.value });
+              }
+            }}
+            required={opts.required && !isOther}
+          >
+            <option value="" disabled>Select {label.toLowerCase()}…</option>
+            {knownOptions.map(o => <option key={o} value={o}>{o}</option>)}
+            <option value="OTHER">Other (type manually)</option>
+          </select>
+          {isOther && (
+            <input
+              className="emp-form-input"
+              style={{ marginTop: 8 }}
+              type="text"
+              placeholder={`Type the ${label.toLowerCase()}…`}
+              value={formData[key]}
+              onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+              required={opts.required}
+              autoFocus
+            />
+          )}
+        </div>
+      );
+    }
+
+    if (opts.textarea) {
+      return (
+        <div className="emp-form-group" style={{ gridColumn: '1 / -1' }}>
+          <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
+          <textarea
+            className="emp-form-input"
+            style={{ minHeight: '70px' }}
+            placeholder={opts.placeholder || label}
+            value={formData[key]}
+            onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+            required={opts.required}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="emp-form-group">
+        <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
+        {opts.select ? (
+          <select
+            className="emp-form-input"
+            value={formData[key]}
+            onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+            required={opts.required}
+          >
+            {opts.options.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        ) : (
+          <input
+            className="emp-form-input"
+            type={type}
+            placeholder={opts.placeholder || label}
+            value={formData[key]}
+            onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+            required={opts.required}
+          />
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="page-container">
@@ -374,23 +459,80 @@ export default function EmployeeList() {
       {showForm && canWrite && (
         <Modal title="New Employee Record" onClose={() => setShowForm(false)}>
           <form onSubmit={handleAddEmployee}>
+            <div className="emp-detail-section-title">Basic Info</div>
             <div className="emp-form-grid">
               {field('Employee ID', 'emp_id', 'text', { required: true })}
               {field('First Name', 'first_name', 'text', { required: true })}
               {field('Last Name', 'last_name', 'text', { required: true })}
-              {field('Email', 'email', 'email')}
+              {field('Middle Name', 'middle_name', 'text')}
+              {field('Work Email', 'email', 'email')}
+              {field('Personal Email', 'personal_email', 'email')}
+              {field('Zoho Email', 'zoho_email', 'email')}
               {field('Phone', 'phone', 'tel')}
-              {field('Department', 'department', 'text')}
-              {field('Position', 'position', 'text')}
-              {field('Hire Date', 'hire_date', 'date')}
-              {field('Salary', 'salary', 'number')}
+              {field('Date of Birth', 'date_of_birth', 'date')}
+              {field('Gender', 'gender', 'text', {
+                select: true, options: ['', 'Male', 'Female', 'Other']
+              })}
+              {field('Marital Status', 'marital_status', 'text', {
+                select: true, options: ['', 'Single', 'Married', 'Widowed', 'Separated']
+              })}
+              {field('Citizenship', 'citizenship', 'text', { placeholder: 'e.g. Filipino' })}
+            </div>
+            {field('Complete Address', 'complete_address', 'text', { textarea: true })}
+
+            <div className="emp-detail-section-title" style={{ marginTop: 16 }}>Work Info</div>
+            <div className="emp-form-grid">
+              {field('Department', 'department', 'text', { required: true, dropdownOr: departments })}
+              {field('Position', 'position', 'text', { required: true, dropdownOr: positions })}
+              {field('New Designation', 'new_designation', 'text')}
+              {field('Position Category', 'position_category', 'text', { dropdownOr: positionCategories })}
               {field('Employment Status', 'employment_status', 'text', {
                 select: true, options: ['Active', 'Inactive', 'Resigned']
               })}
               {field('Classification', 'employment_classification', 'text', {
                 select: true, options: ['Probationary', 'Regular']
               })}
+              {field('Contract Status', 'employment_contract_status', 'text')}
+              {field('Work Arrangement', 'work_arrangement', 'text', {
+                select: true, options: ['', 'Onsite', 'Hybrid', 'Remote']
+              })}
+              {field('Territory', 'territory', 'text')}
+              {field('Reporting To', 'reporting_to', 'text', { placeholder: 'Manager / supervisor name' })}
+              {field('Hire Date', 'hire_date', 'date', { required: true })}
+              {field('Regularization Date', 'regularization_date', 'date')}
+              {field('Exit Date', 'exit_date', 'date')}
             </div>
+            {field('Job Description', 'job_description', 'text', { textarea: true })}
+            {field('Company Rules Acknowledged', 'company_rules', 'text', { textarea: true })}
+
+            <div className="emp-detail-section-title" style={{ marginTop: 16 }}>Compensation</div>
+            <div className="emp-form-grid">
+              {field('Salary', 'salary', 'number')}
+              {field('Bank Name', 'bank_name', 'text')}
+              {field('Bank Account', 'bank_account', 'text')}
+            </div>
+
+            <div className="emp-detail-section-title" style={{ marginTop: 16 }}>Government IDs</div>
+            <div className="emp-form-grid">
+              {field('SSS Number', 'sss_number', 'text')}
+              {field('PhilHealth', 'philhealth_number', 'text')}
+              {field('Pag-IBIG (HDMF)', 'hdmf_number', 'text')}
+              {field('TIN', 'tin_number', 'text')}
+            </div>
+
+            <div className="emp-detail-section-title" style={{ marginTop: 16 }}>Company Property</div>
+            <div className="emp-form-grid">
+              {field('Company-Issued No.', 'company_issued_no', 'text')}
+              {field('Issued Equipment', 'issued_equipment', 'text')}
+            </div>
+
+            <div className="emp-detail-section-title" style={{ marginTop: 16 }}>Emergency Contact</div>
+            <div className="emp-form-grid">
+              {field('Contact Person', 'emergency_contact_person', 'text')}
+              {field('Relationship', 'relationship', 'text')}
+              {field('Contact Details', 'emergency_contact_details', 'text')}
+            </div>
+
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
               <button type="button" className="btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
               <button type="submit" className="btn-primary" disabled={submitting}>
