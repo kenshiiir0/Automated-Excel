@@ -45,6 +45,10 @@ export default function DisciplinaryMemos({ visible } = {}) {
     const [ruleSearch, setRuleSearch] = useState('');
     const [ruleDropdownOpen, setRuleDropdownOpen] = useState(false);
     const [expandedRuleCode, setExpandedRuleCode] = useState(null);
+    // Only one hover-preview can be pending/open at a time, so a single
+    // ref is enough -- starts on mouseenter, fires after 1s of continuous
+    // hover, and is cancelled if the mouse leaves before then.
+    const ruleHoverTimerRef = useRef(null);
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
     const [bulletFacts, setBulletFacts] = useState('');
@@ -488,11 +492,16 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                                                 <button
                                                                     type="button"
                                                                     className="rule-dropdown-view-btn"
-                                                                    title="View full rule text"
-                                                                    onClick={e => {
-                                                                        e.stopPropagation();
-                                                                        setExpandedRuleCode(prev => prev === r.code ? null : r.code);
+                                                                    title="Hover for about a second to view the full rule text"
+                                                                    onMouseEnter={() => {
+                                                                        clearTimeout(ruleHoverTimerRef.current);
+                                                                        ruleHoverTimerRef.current = setTimeout(() => setExpandedRuleCode(r.code), 1000);
                                                                     }}
+                                                                    onMouseLeave={() => {
+                                                                        clearTimeout(ruleHoverTimerRef.current);
+                                                                        setExpandedRuleCode(prev => prev === r.code ? null : prev);
+                                                                    }}
+                                                                    onClick={e => e.stopPropagation()}
                                                                 >
                                                                     <Icon name="eye" size={13} />
                                                                 </button>

@@ -3084,7 +3084,10 @@ button.profile-status-pill {
   background: transparent;
   color: #a0aec0;
   border-radius: 5px;
-  cursor: pointer;
+  /* Hover-to-reveal (~1s), not a click target -- see the onMouseEnter/
+     onMouseLeave timer in DisciplinaryMemos.jsx -- so this uses "default"
+     rather than "pointer" to avoid implying a click does something. */
+  cursor: default;
 }
 
 .rule-dropdown-view-btn:hover {
