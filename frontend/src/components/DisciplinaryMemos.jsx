@@ -17,12 +17,12 @@ function fmtDate(v) {
     }
 }
 
-// Native <select> popups size themselves to the widest option -- with the
-// full verbatim Code of Conduct wording (some entries run 400+ characters),
-// that makes the dropdown itself unusably wide/overflowing. Options show
-// this short version instead; the full text still appears below once a
-// rule is picked, and the "View Full Rules" button (see RulesReferenceModal)
-// covers reading the complete wording before picking.
+// Used for the short label shown in the custom rule dropdown's rows (a
+// native <select> can't be used here at all -- with the full verbatim
+// Code of Conduct wording running 400+ characters on some entries, its
+// popup would size itself to the widest option and become unusably
+// wide). The eye-icon button on each row expands that row in place to
+// show the full text, so browsing full wording never leaves the dropdown.
 function truncateRuleLabel(text, maxLen = 70) {
     const clean = text.replace(/^Rule No\. [0-9.]+ /, '');
     if (clean.length <= maxLen) return clean;
@@ -42,7 +42,9 @@ export default function DisciplinaryMemos({ visible } = {}) {
     const [memoType, setMemoType] = useState('NTE');
     const [ruleCode, setRuleCode] = useState('');
     const [ruleText, setRuleText] = useState('');
-    const [showRulesReference, setShowRulesReference] = useState(false);
+    const [ruleSearch, setRuleSearch] = useState('');
+    const [ruleDropdownOpen, setRuleDropdownOpen] = useState(false);
+    const [expandedRuleCode, setExpandedRuleCode] = useState(null);
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
     const [bulletFacts, setBulletFacts] = useState('');
@@ -187,6 +189,23 @@ export default function DisciplinaryMemos({ visible } = {}) {
         return order.map(cat => byCategory.get(cat));
     }, [companyRules]);
 
+    // Narrows ruleGroups down to whatever matches the typed search (by code
+    // or by the rule's own text), dropping any category left with no
+    // matches -- empty search shows everything, same browsing behavior as
+    // the dropdown had before, just filterable now.
+    const filteredRuleGroups = React.useMemo(() => {
+        const q = ruleSearch.trim().toLowerCase();
+        if (!q) return ruleGroups;
+        return ruleGroups
+            .map(group => ({
+                ...group,
+                rules: group.rules.filter(r => r.code.toLowerCase().includes(q) || r.text.toLowerCase().includes(q)),
+            }))
+            .filter(group => group.rules.length > 0);
+    }, [ruleGroups, ruleSearch]);
+
+    const selectedRule = companyRules.find(r => r.code === ruleCode) || null;
+
     const canGenerate = selectedEmployee && memoType && ruleText.trim() && incidentNarrative.trim()
         && (memoType !== 'FINAL_WRITTEN_WARNING' || priorWarningNote.trim());
 
@@ -202,6 +221,9 @@ export default function DisciplinaryMemos({ visible } = {}) {
 
     const handleRuleCodeChange = (code) => {
         setRuleCode(code);
+        setRuleDropdownOpen(false);
+        setRuleSearch('');
+        setExpandedRuleCode(null);
         if (code === 'OTHER') {
             setRuleText('');
             return;
@@ -415,36 +437,78 @@ export default function DisciplinaryMemos({ visible } = {}) {
                         </select>
                     </div>
 
-                    <div className="emp-form-group" style={{ gridColumn: '1 / -1' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <label className="emp-form-label">Company Rule Violated</label>
-                            <button
-                                type="button"
-                                className="btn-ghost"
-                                style={{ fontSize: 11.5, padding: '3px 9px', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                                onClick={() => setShowRulesReference(true)}
-                            >
-                                <Icon name="file" size={12} /> View Full Rules
-                            </button>
-                        </div>
-                        <select
-                            className="emp-form-input"
-                            value={ruleCode}
-                            onChange={e => handleRuleCodeChange(e.target.value)}
-                        >
-                            <option value="" disabled>Select the rule violated…</option>
-                            {ruleGroups.map(group => (
-                                group.category === 'OTHER' ? (
-                                    group.rules.map(r => <option key={r.code} value={r.code}>{r.text}</option>)
-                                ) : (
-                                    <optgroup key={group.category} label={group.categoryLabel}>
-                                        {group.rules.map(r => (
-                                            <option key={r.code} value={r.code}>{`${r.code} — ${truncateRuleLabel(r.text)}`}</option>
+                    <div className="emp-form-group" style={{ gridColumn: '1 / -1', position: 'relative' }}>
+                        <label className="emp-form-label">Company Rule Violated</label>
+                        {selectedRule ? (
+                            <div className="emp-form-input" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {selectedRule.code === 'OTHER' ? selectedRule.text : `${selectedRule.code} — ${truncateRuleLabel(selectedRule.text)}`}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="btn-ghost"
+                                    style={{ padding: '2px 8px', fontSize: 12, flexShrink: 0 }}
+                                    onClick={() => { setRuleCode(''); setRuleText(''); setRuleSearch(''); setRuleDropdownOpen(true); }}
+                                >
+                                    Change
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <input
+                                    className="emp-form-input"
+                                    type="text"
+                                    placeholder="Search rule by code or keyword, or click to browse…"
+                                    value={ruleSearch}
+                                    onFocus={() => setRuleDropdownOpen(true)}
+                                    onChange={e => { setRuleSearch(e.target.value); setRuleDropdownOpen(true); }}
+                                />
+                                {ruleDropdownOpen && (
+                                    <div className="rule-dropdown-panel" onMouseDown={e => e.preventDefault()}>
+                                        {filteredRuleGroups.length === 0 && (
+                                            <div style={{ padding: '10px 12px', fontSize: 12.5, color: '#a0aec0', fontStyle: 'italic' }}>
+                                                No matching rule.
+                                            </div>
+                                        )}
+                                        {filteredRuleGroups.map(group => (
+                                            <div key={group.category}>
+                                                {group.category !== 'OTHER' && (
+                                                    <div className="rule-dropdown-category">{group.categoryLabel}</div>
+                                                )}
+                                                {group.rules.map(r => (
+                                                    <div key={r.code} className="rule-dropdown-row">
+                                                        <div
+                                                            className="rule-dropdown-row-main"
+                                                            onClick={() => handleRuleCodeChange(r.code)}
+                                                        >
+                                                            <span className="rule-dropdown-row-label">
+                                                                {r.category === 'OTHER' ? r.text : `${r.code} — ${truncateRuleLabel(r.text, 56)}`}
+                                                            </span>
+                                                            {r.category !== 'OTHER' && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="rule-dropdown-view-btn"
+                                                                    title="View full rule text"
+                                                                    onClick={e => {
+                                                                        e.stopPropagation();
+                                                                        setExpandedRuleCode(prev => prev === r.code ? null : r.code);
+                                                                    }}
+                                                                >
+                                                                    <Icon name="eye" size={13} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        {expandedRuleCode === r.code && (
+                                                            <div className="rule-dropdown-row-full">{r.text}</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         ))}
-                                    </optgroup>
-                                )
-                            ))}
-                        </select>
+                                    </div>
+                                )}
+                            </>
+                        )}
                         {ruleCode === 'OTHER' && (
                             <textarea
                                 className="emp-form-input"
@@ -462,7 +526,7 @@ export default function DisciplinaryMemos({ visible } = {}) {
                     <div className="emp-form-group">
                         <label className="emp-form-label">Date of Incident</label>
                         <input
-                            className="emp-form-input"
+                            className="emp-form-input date-input-compact"
                             type="date"
                             value={incidentDate}
                             onChange={e => setIncidentDate(e.target.value)}
@@ -568,13 +632,6 @@ export default function DisciplinaryMemos({ visible } = {}) {
                 />
             )}
 
-            {showRulesReference && (
-                <RulesReferenceModal
-                    ruleGroups={ruleGroups}
-                    onClose={() => setShowRulesReference(false)}
-                    onPick={(code) => { handleRuleCodeChange(code); setShowRulesReference(false); }}
-                />
-            )}
 
             <div className="section-title">Recently Issued</div>
             {history.length === 0 ? (
@@ -624,46 +681,6 @@ export default function DisciplinaryMemos({ visible } = {}) {
                 </div>
             )}
         </div>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// RulesReferenceModal -- opened by "View Full Rules" next to the Company
-// Rule dropdown. The dropdown itself only shows short/truncated labels
-// (a native <select> sizes its popup to the widest option, and the real
-// Code of Conduct wording runs well past what that can handle), so this
-// is where HR reads the complete, verbatim text of every rule -- grouped
-// by category exactly like the dropdown -- before or after picking one.
-// Clicking a rule here selects it and closes the modal, same as picking
-// it directly from the dropdown.
-// ---------------------------------------------------------------------------
-function RulesReferenceModal({ ruleGroups, onClose, onPick }) {
-    return (
-        <Modal title="Company Rules Reference" onClose={onClose} maxWidth={640}>
-            <p style={{ fontSize: 12.5, color: '#718096', marginTop: 0, marginBottom: 16 }}>
-                Full text of every rule, from the Code of Conduct's List of Deviations. Click a rule to select it.
-            </p>
-            <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
-                {ruleGroups.map(group => (
-                    <div key={group.category} style={{ marginBottom: 18 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0F5777', marginBottom: 8 }}>
-                            {group.category === 'OTHER' ? 'Other' : group.categoryLabel}
-                        </div>
-                        {group.rules.map(r => (
-                            <div
-                                key={r.code}
-                                onClick={() => onPick(r.code)}
-                                style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', marginBottom: 4 }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#f0f9ff'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                            >
-                                <span style={{ fontSize: 13, color: '#2d3748' }}>{r.text}</span>
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-        </Modal>
     );
 }
 

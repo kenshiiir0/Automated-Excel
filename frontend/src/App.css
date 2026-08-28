@@ -3008,3 +3008,94 @@ button.profile-status-pill {
   font-size: 12px;
   color: #a0aec0;
 }
+
+/* Date of Incident's native date input renders its mm/dd/yyyy
+   placeholder at the same font-size as every other .emp-form-input --
+   noticeably larger next to the compact rule/employee text next to it.
+   This one field only gets a smaller size. */
+.date-input-compact {
+  font-size: 12px;
+}
+
+/* Custom searchable Company Rule dropdown (replaces the old native
+   <select>, which couldn't hold the full 76-rule Code of Conduct text
+   without its popup overflowing the page). Same panel styling as the
+   employee search dropdown, plus per-row expand-in-place for reading a
+   rule's full text without leaving the dropdown or losing your place. */
+.rule-dropdown-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.rule-dropdown-category {
+  position: sticky;
+  top: 0;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0F5777;
+  background: #f7fafc;
+  border-bottom: 1px solid #edf2f7;
+  border-top: 1px solid #edf2f7;
+}
+
+.rule-dropdown-row {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.rule-dropdown-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  cursor: pointer;
+}
+
+.rule-dropdown-row-main:hover {
+  background: #f0f9ff;
+}
+
+.rule-dropdown-row-label {
+  font-size: 12.5px;
+  color: #2d3748;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rule-dropdown-view-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #a0aec0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.rule-dropdown-view-btn:hover {
+  background: #e2e8f0;
+  color: #1D9FDA;
+}
+
+.rule-dropdown-row-full {
+  padding: 4px 12px 10px 12px;
+  font-size: 12.5px;
+  color: #4a5568;
+  background: #f8fafc;
+  line-height: 1.5;
+}
