@@ -49,6 +49,25 @@ export default function DisciplinaryMemos({ visible } = {}) {
     // ref is enough -- starts on mouseenter, fires after 300ms of
     // continuous hover, and is cancelled if the mouse leaves before then.
     const ruleHoverTimerRef = useRef(null);
+    // Wraps the whole Company Rule field (input/selected-value + dropdown
+    // panel) so a document-level click listener can tell "inside this
+    // field" apart from "blank area elsewhere on the page" and close the
+    // dropdown on the latter.
+    const ruleFieldRef = useRef(null);
+
+    // Close the Company Rule dropdown when the user clicks anywhere outside
+    // of it (the input/selected-value box or the panel itself) -- e.g. a
+    // blank area of the page, another field, etc.
+    useEffect(() => {
+        if (!ruleDropdownOpen) return;
+        const handleClickOutside = (e) => {
+            if (ruleFieldRef.current && !ruleFieldRef.current.contains(e.target)) {
+                setRuleDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [ruleDropdownOpen]);
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
     const [bulletFacts, setBulletFacts] = useState('');
@@ -441,7 +460,7 @@ export default function DisciplinaryMemos({ visible } = {}) {
                         </select>
                     </div>
 
-                    <div className="emp-form-group" style={{ gridColumn: '1 / -1', position: 'relative' }}>
+                    <div className="emp-form-group" style={{ gridColumn: '1 / -1', position: 'relative' }} ref={ruleFieldRef}>
                         <label className="emp-form-label">Company Rule Violated</label>
                         {selectedRule ? (
                             <div
