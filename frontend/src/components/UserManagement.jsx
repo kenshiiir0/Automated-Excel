@@ -248,6 +248,29 @@ export default function UserManagement() {
         }
     };
 
+    const [confirmArchiveId, setConfirmArchiveId] = useState(null);
+
+    // "Delete" in this system always archives -- nothing is ever hard-
+    // deleted. The account is deactivated (can no longer sign in) and
+    // disappears from this list, but every record it created (disciplinary
+    // memos, etc.) keeps working and still shows this person's real name.
+    // It can be brought back anytime from History.
+    const handleArchive = async (id) => {
+        setSavingId(id);
+        try {
+            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Could not archive this account.');
+            setUsers(prev => prev.filter(u => u.id !== id));
+            showToast('success', 'Account archived. Restore anytime from History.');
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            setSavingId(null);
+            setConfirmArchiveId(null);
+        }
+    };
+
     if (loading) {
         return <div className="page-loading">Loading accounts…</div>;
     }
@@ -293,12 +316,13 @@ export default function UserManagement() {
                             <th>Presence</th>
                             <th>Member Since</th>
                             <th>Last Login</th>
+                            {isSuperAdmin && <th>Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {users.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                                <td colSpan={isSuperAdmin ? 8 : 7} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                                     No accounts found.
                                 </td>
                             </tr>
@@ -350,6 +374,40 @@ export default function UserManagement() {
                                     <td><OnlineIndicator lastSeenAt={u.last_seen_at} /></td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(u.created_at)}</td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(u.last_login_at)}</td>
+                                    {isSuperAdmin && (
+                                        <td>
+                                            {isSelf ? (
+                                                <span style={{ fontSize: 11, color: '#cbd5e0' }}>—</span>
+                                            ) : confirmArchiveId === u.id ? (
+                                                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                    <button
+                                                        className="btn-danger-sm"
+                                                        style={{ fontSize: 11, padding: '4px 10px' }}
+                                                        disabled={savingId === u.id}
+                                                        onClick={() => handleArchive(u.id)}
+                                                    >
+                                                        {savingId === u.id ? 'Archiving…' : 'Confirm'}
+                                                    </button>
+                                                    <button
+                                                        className="btn-ghost"
+                                                        style={{ fontSize: 11, padding: '4px 10px' }}
+                                                        disabled={savingId === u.id}
+                                                        onClick={() => setConfirmArchiveId(null)}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    className="emp-detail-action-btn delete"
+                                                    title="Archive this account"
+                                                    onClick={() => setConfirmArchiveId(u.id)}
+                                                >
+                                                    <Icon name="trash" size={14} />
+                                                </button>
+                                            )}
+                                        </td>
+                                    )}
                                 </tr>
                             );
                         })}

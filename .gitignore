@@ -18,3 +18,9 @@ Thumbs.db
 
 # Contains real employee PII (names, addresses, SSS/TIN/PhilHealth, salaries) -- never commit
 import_data/
+
+# Stale build/verification artifacts (this device environment sometimes
+# can't clean these up automatically due to filesystem permission quirks)
+frontend/dist.stale_*/
+frontend/dist_verify*/
+frontend/vite.config.js.timestamp-*.mjs

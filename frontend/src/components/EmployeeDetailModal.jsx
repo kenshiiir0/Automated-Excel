@@ -347,7 +347,7 @@ export default function EmployeeDetailModal({ employeeId, onClose, onDeleted, on
     try {
       const res = await fetch(`/api/employees/${employeeId}`, { method: 'DELETE' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not delete this record.');
+      if (!res.ok) throw new Error(data.error || 'Could not archive this record.');
       if (onDeleted) onDeleted(employeeId);
       onClose();
     } catch (err) {
@@ -405,7 +405,7 @@ export default function EmployeeDetailModal({ employeeId, onClose, onDeleted, on
                   <Icon name="edit" size={15} />
                   <span>Edit</span>
                 </button>
-                <button className="emp-detail-action-btn delete" onClick={() => setConfirmingDelete(true)} title="Delete record">
+                <button className="emp-detail-action-btn delete" onClick={() => setConfirmingDelete(true)} title="Archive record">
                   <Icon name="trash" size={15} />
                 </button>
               </>
@@ -430,14 +430,14 @@ export default function EmployeeDetailModal({ employeeId, onClose, onDeleted, on
           <div className="emp-detail-delete-banner">
             <Icon name="alertTriangle" size={18} />
             <div className="emp-detail-delete-text">
-              <strong>Delete {fullName}'s record?</strong>
-              <span>This permanently removes the employee record. This cannot be undone.</span>
+              <strong>Archive {fullName}'s record?</strong>
+              <span>This moves the employee into Archived. Nothing is deleted -- you (or another admin) can restore it anytime from History.</span>
             </div>
             <div className="emp-detail-delete-actions">
               <button className="btn-ghost" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Cancel</button>
               <button className="btn-danger-sm" onClick={handleDelete} disabled={deleting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 {deleting && <span className="btn-spinner" />}
-                {deleting ? 'Deleting…' : 'Yes, Delete Permanently'}
+                {deleting ? 'Archiving…' : 'Yes, Archive'}
               </button>
             </div>
           </div>

@@ -1,11 +1,23 @@
 import { supabaseAdmin } from '../lib/supabase.js';
+import { logCreate, logUpdate, logArchive, logRestore } from '../lib/auditLog.js';
+
+function candidateLabel(c) {
+    if (!c) return null;
+    return c.candidate_name || null;
+}
 
 const getAllCandidates = async (req, res) => {
     try {
-        const { data, error } = await supabaseAdmin
+        const includeArchived = req.query.includeArchived === '1' || req.query.includeArchived === 'true';
+
+        let query = supabaseAdmin
             .from('recruitment_candidates')
             .select('*')
             .order('created_at', { ascending: false });
+
+        query = includeArchived ? query.eq('is_archived', true) : query.eq('is_archived', false);
+
+        const { data, error } = await query;
 
         if (error) throw error;
         res.json(data);
@@ -24,7 +36,9 @@ const createCandidate = async (req, res) => {
             .select();
 
         if (error) throw error;
-        res.status(201).json(data[0]);
+        const created = data[0];
+        await logCreate({ entityType: 'candidate', entityId: created.id, entityLabel: candidateLabel(created), req });
+        res.status(201).json(created);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -32,6 +46,14 @@ const createCandidate = async (req, res) => {
 
 const updateCandidate = async (req, res) => {
     try {
+        const { data: before, error: findErr } = await supabaseAdmin
+            .from('recruitment_candidates')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!before) return res.status(404).json({ error: 'Candidate not found.' });
+
         const { data, error } = await supabaseAdmin
             .from('recruitment_candidates')
             .update(req.body)
@@ -39,24 +61,62 @@ const updateCandidate = async (req, res) => {
             .select();
 
         if (error) throw error;
-        res.json(data[0]);
+        const updated = data[0];
+        await logUpdate({ entityType: 'candidate', entityId: updated.id, entityLabel: candidateLabel(updated), before, after: req.body, req });
+        res.json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
+// "Delete" in the UI archives the candidate record instead of removing
+// the row -- nothing in this system is ever hard-deleted.
 const deleteCandidate = async (req, res) => {
     try {
+        const { data: existing, error: findErr } = await supabaseAdmin
+            .from('recruitment_candidates')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!existing) return res.status(404).json({ error: 'Candidate not found.' });
+        if (existing.is_archived) return res.status(400).json({ error: 'This candidate is already archived.' });
+
         const { error } = await supabaseAdmin
             .from('recruitment_candidates')
-            .delete()
+            .update({ is_archived: true, archived_at: new Date().toISOString(), archived_by: req.user?.id || null })
             .eq('id', req.params.id);
 
         if (error) throw error;
-        res.json({ message: 'Candidate deleted' });
+        await logArchive({ entityType: 'candidate', entityId: Number(req.params.id), entityLabel: candidateLabel(existing), req });
+        res.json({ message: 'Candidate archived' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-export { getAllCandidates, createCandidate, updateCandidate, deleteCandidate };
+const restoreCandidate = async (req, res) => {
+    try {
+        const { data: existing, error: findErr } = await supabaseAdmin
+            .from('recruitment_candidates')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!existing) return res.status(404).json({ error: 'Candidate not found.' });
+        if (!existing.is_archived) return res.status(400).json({ error: 'This candidate is not archived.' });
+
+        const { error } = await supabaseAdmin
+            .from('recruitment_candidates')
+            .update({ is_archived: false, archived_at: null, archived_by: null })
+            .eq('id', req.params.id);
+
+        if (error) throw error;
+        await logRestore({ entityType: 'candidate', entityId: Number(req.params.id), entityLabel: candidateLabel(existing), req });
+        res.json({ message: 'Candidate restored' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export { getAllCandidates, createCandidate, updateCandidate, deleteCandidate, restoreCandidate };

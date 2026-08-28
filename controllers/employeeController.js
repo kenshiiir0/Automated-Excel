@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../lib/supabase.js';
+import { logCreate, logUpdate, logArchive, logRestore } from '../lib/auditLog.js';
 
 // Fields hidden from 'user'-role accounts (read-only accounts). Everyone
 // else (admin, super_admin) sees the full record -- this only trims the
@@ -46,12 +47,26 @@ function stripSensitiveFieldsFromWrite(req, body) {
     return clean;
 }
 
+function employeeLabel(emp) {
+    if (!emp) return null;
+    const name = [emp.last_name, emp.first_name].filter(Boolean).join(', ');
+    return emp.emp_id ? `${emp.emp_id} — ${name}` : name || null;
+}
+
+// Archived employees are hidden from the default list -- pass
+// ?includeArchived=1 to see only archived ones (used by the History page).
 const getAllEmployees = async (req, res) => {
     try {
-        const { data, error } = await supabaseAdmin
+        const includeArchived = req.query.includeArchived === '1' || req.query.includeArchived === 'true';
+
+        let query = supabaseAdmin
             .from('employees')
             .select('*')
             .order('created_at', { ascending: false });
+
+        query = includeArchived ? query.eq('is_archived', true) : query.eq('is_archived', false);
+
+        const { data, error } = await query;
 
         if (error) throw error;
         res.json(withRoleFilter(req, data));
@@ -108,7 +123,9 @@ const createEmployee = async (req, res) => {
             .select();
 
         if (error) throw error;
-        res.status(201).json(data[0]);
+        const created = data[0];
+        await logCreate({ entityType: 'employee', entityId: created.id, entityLabel: employeeLabel(created), req });
+        res.status(201).json(created);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -116,6 +133,14 @@ const createEmployee = async (req, res) => {
 
 const updateEmployee = async (req, res) => {
     try {
+        const { data: before, error: findErr } = await supabaseAdmin
+            .from('employees')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!before) return res.status(404).json({ error: 'Employee not found.' });
+
         const updates = stripSensitiveFieldsFromWrite(req, req.body);
 
         const { data, error } = await supabaseAdmin
@@ -125,24 +150,65 @@ const updateEmployee = async (req, res) => {
             .select();
 
         if (error) throw error;
-        res.json(data[0]);
+        const updated = data[0];
+        await logUpdate({ entityType: 'employee', entityId: updated.id, entityLabel: employeeLabel(updated), before, after: updates, req });
+        res.json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
+// "Delete" in the UI archives the employee record instead of removing the
+// row -- nothing in this system is ever hard-deleted. Disciplinary memos
+// and any other record referencing this employee stay intact and readable.
 const deleteEmployee = async (req, res) => {
     try {
+        const { data: existing, error: findErr } = await supabaseAdmin
+            .from('employees')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!existing) return res.status(404).json({ error: 'Employee not found.' });
+        if (existing.is_archived) return res.status(400).json({ error: 'This employee record is already archived.' });
+
         const { error } = await supabaseAdmin
             .from('employees')
-            .delete()
+            .update({ is_archived: true, archived_at: new Date().toISOString(), archived_by: req.user?.id || null })
             .eq('id', req.params.id);
 
         if (error) throw error;
-        res.json({ message: 'Employee deleted' });
+        await logArchive({ entityType: 'employee', entityId: Number(req.params.id), entityLabel: employeeLabel(existing), req });
+        res.json({ message: 'Employee archived' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-export { getAllEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee };
+// Undo for deleteEmployee -- brings an archived record back into the
+// default Employee Directory view.
+const restoreEmployee = async (req, res) => {
+    try {
+        const { data: existing, error: findErr } = await supabaseAdmin
+            .from('employees')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!existing) return res.status(404).json({ error: 'Employee not found.' });
+        if (!existing.is_archived) return res.status(400).json({ error: 'This employee record is not archived.' });
+
+        const { error } = await supabaseAdmin
+            .from('employees')
+            .update({ is_archived: false, archived_at: null, archived_by: null })
+            .eq('id', req.params.id);
+
+        if (error) throw error;
+        await logRestore({ entityType: 'employee', entityId: Number(req.params.id), entityLabel: employeeLabel(existing), req });
+        res.json({ message: 'Employee restored' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export { getAllEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee, restoreEmployee };

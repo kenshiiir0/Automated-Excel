@@ -109,6 +109,28 @@ export default function RecruitmentTracker() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const [confirmArchiveId, setConfirmArchiveId] = useState(null);
+  const [archivingId, setArchivingId] = useState(null);
+
+  // "Delete" in this system always archives -- nothing is ever hard-deleted.
+  // The candidate disappears from the pipeline view but stays fully intact
+  // and can be brought back from History.
+  const handleArchive = async (candidate) => {
+    setArchivingId(candidate.id);
+    try {
+      const res = await fetch(`/api/recruitment/candidates/${candidate.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not archive this candidate.');
+      setCandidates(prev => prev.filter(c => c.id !== candidate.id));
+      showToast(`${candidate.candidate_name} archived. Restore anytime from History.`);
+    } catch (err) {
+      showToast(err.message || 'Failed to archive candidate.', 'error');
+    } finally {
+      setArchivingId(null);
+      setConfirmArchiveId(null);
+    }
+  };
+
   const handleAddCandidate = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -368,6 +390,7 @@ export default function RecruitmentTracker() {
                 <th>Status</th>
                 <th>Remarks</th>
                 <th>Date Added</th>
+                {canWrite && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -390,6 +413,7 @@ export default function RecruitmentTracker() {
                   <td><div className="skeleton" style={{ width: '110px', height: '26px', borderRadius: '8px' }}></div></td>
                   <td><div className="skeleton skeleton-text" style={{ width: '150px', height: '12px' }}></div></td>
                   <td><div className="skeleton skeleton-text" style={{ width: '75px', height: '11px' }}></div></td>
+                  {canWrite && <td><div className="skeleton skeleton-text" style={{ width: '40px', height: '20px' }}></div></td>}
                 </tr>
               ))}
             </tbody>
@@ -409,12 +433,13 @@ export default function RecruitmentTracker() {
                 <th>Status</th>
                 <th>Remarks</th>
                 <th>Date Added</th>
+                {canWrite && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                  <td colSpan={canWrite ? 10 : 9} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                     No candidates match your search.
                   </td>
                 </tr>
@@ -464,6 +489,38 @@ export default function RecruitmentTracker() {
                   <td style={{ fontSize: 11, color: '#a0aec0', whiteSpace: 'nowrap' }}>
                     {c.requested_date ? new Date(c.requested_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                   </td>
+                  {canWrite && (
+                    <td>
+                      {confirmArchiveId === c.id ? (
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button
+                            className="btn-danger-sm"
+                            style={{ fontSize: 11, padding: '4px 10px' }}
+                            disabled={archivingId === c.id}
+                            onClick={() => handleArchive(c)}
+                          >
+                            {archivingId === c.id ? 'Archiving…' : 'Confirm'}
+                          </button>
+                          <button
+                            className="btn-ghost"
+                            style={{ fontSize: 11, padding: '4px 10px' }}
+                            disabled={archivingId === c.id}
+                            onClick={() => setConfirmArchiveId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="emp-detail-action-btn delete"
+                          title="Archive this candidate"
+                          onClick={() => setConfirmArchiveId(c.id)}
+                        >
+                          <Icon name="trash" size={14} />
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

@@ -4,6 +4,7 @@ import Navigation from './components/Navigation.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Profile from './components/Profile.jsx';
 import UserManagement from './components/UserManagement.jsx';
+import History from './components/History.jsx';
 import HrDocuments from './components/HrDocuments.jsx';
 import DisciplinaryMemos from './components/DisciplinaryMemos.jsx';
 import EmployeeList from '../EmployeeList.jsx';
@@ -40,6 +41,7 @@ function AuthedApp() {
             <Route path="/disciplinary-memos" element={<DisciplinaryMemos />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/users" element={<UserManagement />} />
+            <Route path="/history" element={<History />} />
           </Routes>
         </main>
       </div>

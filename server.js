@@ -14,6 +14,7 @@ import profileRoutes from './routes/profile.js';
 import usersRoutes from './routes/users.js';
 import zohoWorkdriveRoutes from './routes/zohoWorkdrive.js';
 import disciplinaryMemosRoutes from './routes/disciplinaryMemos.js';
+import auditLogRoutes from './routes/auditLog.js';
 import { requireAuth } from './lib/requireAuth.js';
 import { apiLimiter } from './lib/rateLimiters.js';
 
@@ -57,6 +58,7 @@ app.use('/api/email', requireAuth, emailRoutes);
 app.use('/api/interns', requireAuth, internRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
+app.use('/api/audit-log', requireAuth, auditLogRoutes);
 
 // zohoWorkdriveRoutes applies its own per-route auth (requireAuth +
 // requireRole where needed) rather than a blanket requireAuth here,

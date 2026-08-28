@@ -25,7 +25,7 @@ export default function Navigation() {
   // emailing NTEs/warnings), gated the same as Manage Users -- admin and
   // super_admin only, not visible to a plain 'user' account.
   const navItems = canSeeUserManagement
-    ? [...NAV_ITEMS, { to: '/disciplinary-memos', label: 'Disciplinary Memos', icon: 'alertDoc' }, { to: '/users', label: 'Manage Users', icon: 'shield' }]
+    ? [...NAV_ITEMS, { to: '/disciplinary-memos', label: 'Disciplinary Memos', icon: 'alertDoc' }, { to: '/users', label: 'Manage Users', icon: 'shield' }, { to: '/history', label: 'History', icon: 'clipboard' }]
     : NAV_ITEMS;
 
   // "collapsed" is the user's pinned preference, remembered across visits.

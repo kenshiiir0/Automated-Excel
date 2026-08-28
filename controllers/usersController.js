@@ -2,19 +2,35 @@ import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { sendWelcomeEmail } from '../lib/resend.js';
 import { isAllowedSignupEmail, ALLOWED_SIGNUP_DOMAINS } from '../lib/allowedDomains.js';
+import { logCreate, logUpdate, logArchive, logRestore } from '../lib/auditLog.js';
 
 const VALID_ROLES = ['super_admin', 'admin', 'user'];
+const USER_SELECT_FIELDS = 'id, username, email, full_name, role, is_active, is_archived, archived_at, email_verified, created_at, last_login_at, last_seen_at';
+
+function userLabel(u) {
+    if (!u) return null;
+    return u.full_name || u.username || u.email || null;
+}
 
 // Account list for the "Manage Users" page. admin and super_admin can both
 // view it; only super_admin gets edit rights (enforced by requireRole on
 // the PATCH route, not here) -- this is why the list endpoint itself only
 // needs requireWriteAccess (admin+), one tier looser than the edit route.
+// Archived accounts are hidden from the default list -- pass
+// ?includeArchived=1 to see only archived ones (used by History/the
+// "Archived Accounts" view).
 const listUsers = async (req, res) => {
     try {
-        const { data, error } = await supabaseAdmin
+        const includeArchived = req.query.includeArchived === '1' || req.query.includeArchived === 'true';
+
+        let query = supabaseAdmin
             .from('users')
-            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at, last_seen_at')
+            .select(USER_SELECT_FIELDS)
             .order('created_at', { ascending: true });
+
+        query = includeArchived ? query.eq('is_archived', true) : query.eq('is_archived', false);
+
+        const { data, error } = await query;
 
         if (error) throw error;
         res.json(data);
@@ -37,6 +53,14 @@ const updateUser = async (req, res) => {
             return res.status(400).json({ error: 'You cannot change your own role or status here.' });
         }
 
+        const { data: before, error: findErr } = await supabaseAdmin
+            .from('users')
+            .select(USER_SELECT_FIELDS)
+            .eq('id', targetId)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!before) return res.status(404).json({ error: 'Account not found.' });
+
         const updates = {};
         if (role !== undefined) {
             if (!VALID_ROLES.includes(role)) {
@@ -55,11 +79,12 @@ const updateUser = async (req, res) => {
             .from('users')
             .update(updates)
             .eq('id', targetId)
-            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at, last_seen_at')
+            .select(USER_SELECT_FIELDS)
             .single();
 
         if (error) throw error;
         if (!data) return res.status(404).json({ error: 'Account not found.' });
+        await logUpdate({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), before, after: updates, req });
         res.json({ user: data });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -125,10 +150,12 @@ const createUser = async (req, res) => {
                 is_active: true,
                 email_verified: true,
             })
-            .select('id, username, email, full_name, role, is_active, email_verified, created_at, last_login_at, last_seen_at')
+            .select(USER_SELECT_FIELDS)
             .single();
 
         if (error) throw error;
+
+        await logCreate({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), req });
 
         // Best-effort: the account is already created and usable even if
         // the email fails to send, so don't roll anything back -- just
@@ -147,4 +174,74 @@ const createUser = async (req, res) => {
     }
 };
 
-export { listUsers, updateUser, createUser };
+// "Delete" button in Manage Users -- archives instead of removing the row.
+// The account can no longer log in (is_active is forced false alongside
+// is_archived, since authController.js's login check only looks at
+// is_active) and disappears from the default account list, but every
+// disciplinary memo or Zoho connection it created keeps working and still
+// shows this person's real name -- nothing references a deleted row.
+// A super_admin cannot archive their own account (same self-protection
+// rule as updateUser) or archive an already-archived one.
+const archiveUser = async (req, res) => {
+    try {
+        const targetId = Number(req.params.id);
+        if (targetId === req.user.id) {
+            return res.status(400).json({ error: 'You cannot archive your own account.' });
+        }
+
+        const { data: existing, error: findErr } = await supabaseAdmin
+            .from('users')
+            .select(USER_SELECT_FIELDS)
+            .eq('id', targetId)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!existing) return res.status(404).json({ error: 'Account not found.' });
+        if (existing.is_archived) return res.status(400).json({ error: 'This account is already archived.' });
+
+        const { data, error } = await supabaseAdmin
+            .from('users')
+            .update({ is_archived: true, is_active: false, archived_at: new Date().toISOString(), archived_by: req.user.id })
+            .eq('id', targetId)
+            .select(USER_SELECT_FIELDS)
+            .single();
+
+        if (error) throw error;
+        await logArchive({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), req });
+        res.json({ user: data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// Undo for archiveUser. Restores login access (is_active back to true) --
+// an admin can immediately deactivate again afterward if that wasn't
+// intended, same as any other account.
+const restoreUser = async (req, res) => {
+    try {
+        const targetId = Number(req.params.id);
+
+        const { data: existing, error: findErr } = await supabaseAdmin
+            .from('users')
+            .select(USER_SELECT_FIELDS)
+            .eq('id', targetId)
+            .maybeSingle();
+        if (findErr) throw findErr;
+        if (!existing) return res.status(404).json({ error: 'Account not found.' });
+        if (!existing.is_archived) return res.status(400).json({ error: 'This account is not archived.' });
+
+        const { data, error } = await supabaseAdmin
+            .from('users')
+            .update({ is_archived: false, is_active: true, archived_at: null, archived_by: null })
+            .eq('id', targetId)
+            .select(USER_SELECT_FIELDS)
+            .single();
+
+        if (error) throw error;
+        await logRestore({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), req });
+        res.json({ user: data });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export { listUsers, updateUser, createUser, archiveUser, restoreUser };

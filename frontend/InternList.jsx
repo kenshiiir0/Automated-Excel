@@ -72,6 +72,28 @@ export default function InternList() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const [confirmArchiveId, setConfirmArchiveId] = useState(null);
+  const [archivingId, setArchivingId] = useState(null);
+
+  // "Delete" in this system always archives -- nothing is ever hard-deleted.
+  // The record disappears from this list but stays fully intact and can be
+  // brought back from History.
+  const handleArchive = async (intern) => {
+    setArchivingId(intern.id);
+    try {
+      const res = await fetch(`/api/interns/${intern.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not archive this intern.');
+      setInterns(prev => prev.filter(i => i.id !== intern.id));
+      showToast(`${intern.first_name} ${intern.last_name} archived. Restore anytime from History.`);
+    } catch (err) {
+      showToast(err.message || 'Failed to archive intern.', 'error');
+    } finally {
+      setArchivingId(null);
+      setConfirmArchiveId(null);
+    }
+  };
+
   const handleAdd = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -306,14 +328,15 @@ export default function InternList() {
               <th>Contact</th>
               <th>Email</th>
               <th>Birthday</th>
+              {canWrite && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0' }}>Loading…</td></tr>
+              <tr><td colSpan={canWrite ? 7 : 6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0' }}>Loading…</td></tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                <td colSpan={canWrite ? 7 : 6} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                   No intern records match your search.
                 </td>
               </tr>
@@ -337,6 +360,38 @@ export default function InternList() {
                 <td style={{ fontSize: 12, color: '#718096' }}>
                   {i.birthday ? new Date(i.birthday).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Nothing to show yet'}
                 </td>
+                {canWrite && (
+                  <td>
+                    {confirmArchiveId === i.id ? (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button
+                          className="btn-danger-sm"
+                          style={{ fontSize: 11, padding: '4px 10px' }}
+                          disabled={archivingId === i.id}
+                          onClick={() => handleArchive(i)}
+                        >
+                          {archivingId === i.id ? 'Archiving…' : 'Confirm'}
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          style={{ fontSize: 11, padding: '4px 10px' }}
+                          disabled={archivingId === i.id}
+                          onClick={() => setConfirmArchiveId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="emp-detail-action-btn delete"
+                        title="Archive this intern record"
+                        onClick={() => setConfirmArchiveId(i.id)}
+                      >
+                        <Icon name="trash" size={14} />
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
