@@ -42,6 +42,19 @@ function pickEmployeeEmail(emp) {
     return emp.personal_email || emp.email || emp.zoho_email || null;
 }
 
+// The Send modal lets HR pick which address on file to use (personal,
+// work, or Zoho) instead of always taking pickEmployeeEmail's default.
+// Never trust a client-supplied email outright for something this
+// sensitive -- only accept it if it exactly matches one of the
+// employee's own on-file addresses, otherwise fall back to the default
+// pick. This blocks a modified request from redirecting a memo to an
+// arbitrary address that isn't actually this employee's.
+function resolveRequestedEmail(emp, requestedEmail) {
+    if (!requestedEmail) return pickEmployeeEmail(emp);
+    const onFile = [emp.personal_email, emp.email, emp.zoho_email].filter(Boolean);
+    return onFile.includes(requestedEmail) ? requestedEmail : pickEmployeeEmail(emp);
+}
+
 // GET /api/disciplinary-memos/types -- the memo type list + labels, so
 // the frontend doesn't hardcode them separately from the backend.
 const listMemoTypes = (req, res) => {
@@ -104,7 +117,7 @@ const previewMemo = async (req, res) => {
 // tell HR to fix the data first" decision.
 const sendMemo = async (req, res) => {
     try {
-        const { employeeId, memoType, ruleText, incidentDate, incidentTime, incidentNarrative, memoDate, priorWarningNote } = req.body;
+        const { employeeId, memoType, ruleText, incidentDate, incidentTime, incidentNarrative, memoDate, priorWarningNote, toEmail: requestedEmail } = req.body;
 
         if (!employeeId || !memoType || !ruleText || !incidentNarrative) {
             return res.status(400).json({ error: 'Employee, memo type, rule, and incident narrative are required.' });
@@ -117,7 +130,7 @@ const sendMemo = async (req, res) => {
             .single();
         if (error || !emp) return res.status(404).json({ error: 'Employee not found.' });
 
-        const toEmail = pickEmployeeEmail(emp);
+        const toEmail = resolveRequestedEmail(emp, requestedEmail);
         if (!toEmail) {
             return res.status(409).json({ error: 'No email on file for this employee. Add one in Employee Details before sending.' });
         }
@@ -169,6 +182,7 @@ const sendMemo = async (req, res) => {
                 incident_time: incidentTime || null,
                 incident_narrative: incidentNarrative,
                 memo_date: resolvedMemoDate,
+                prior_warning_note: memoType === 'FINAL_WRITTEN_WARNING' ? (priorWarningNote || null) : null,
                 status: 'sent',
                 sent_at: new Date().toISOString(),
                 sent_by: req.user.id,
@@ -230,4 +244,57 @@ const draftNarrative = async (req, res) => {
     }
 };
 
-export { listMemoTypes, previewMemo, sendMemo, listMemos, draftNarrative };
+
+// GET /api/disciplinary-memos/:id/download -- regenerates the exact
+// .docx for an already-issued memo from its stored fields (never stored
+// as a binary blob -- the row's fields are the source of truth, same as
+// previewMemo/sendMemo build the document fresh every time). Lets
+// "Recently Issued" offer a real Download action, not just a record of
+// who/when/where it was sent.
+const downloadMemo = async (req, res) => {
+    try {
+        const { data: memo, error } = await supabaseAdmin
+            .from('disciplinary_memos')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
+        if (error || !memo) return res.status(404).json({ error: 'Memo not found.' });
+
+        const { data: emp, error: empError } = await supabaseAdmin
+            .from('employees')
+            .select('id, first_name, last_name, middle_name, position, department, hire_date')
+            .eq('id', memo.employee_id)
+            .maybeSingle();
+        if (empError) throw empError;
+
+        const employeeName = emp ? formatEmployeeName(emp) : 'Employee';
+        const fields = {
+            employee_name: employeeName,
+            date_hired: emp ? formatDateForMemo(emp.hire_date) : '',
+            position: emp?.position || '',
+            department: emp?.department || '',
+            company: '2MG Incorporated',
+            memo_date: memo.memo_date || TODAY_LONG(),
+            rule_text: memo.rule_text,
+            incident_date: memo.incident_date || '',
+            incident_time: memo.incident_time || 'Working hours',
+            incident_narrative: memo.incident_narrative,
+        };
+        if (memo.memo_type === 'FINAL_WRITTEN_WARNING') {
+            fields.prior_warning_note = memo.prior_warning_note || '';
+        }
+
+        const buffer = renderMemoDocx(memo.memo_type, fields);
+        const config = getMemoTypeConfig(memo.memo_type);
+        const filename = `${config.label.replace(/\s+/g, '_')}_${employeeName.replace(/[,\s]+/g, '_')}.docx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(buffer);
+    } catch (err) {
+        console.error('Memo download failed:', err);
+        res.status(500).json({ error: err.message || 'Could not generate this memo for download.' });
+    }
+};
+
+export { listMemoTypes, previewMemo, sendMemo, listMemos, draftNarrative, downloadMemo };

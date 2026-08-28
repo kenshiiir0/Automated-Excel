@@ -1,5 +1,5 @@
 import express from 'express';
-import { listMemoTypes, previewMemo, sendMemo, listMemos, draftNarrative } from '../controllers/disciplinaryMemosController.js';
+import { listMemoTypes, previewMemo, sendMemo, listMemos, draftNarrative, downloadMemo } from '../controllers/disciplinaryMemosController.js';
 import { requireWriteAccess } from '../lib/requireRole.js';
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.get('/disciplinary-memos', requireWriteAccess, listMemos);
 router.post('/disciplinary-memos/draft-narrative', requireWriteAccess, draftNarrative);
 router.post('/disciplinary-memos/preview', requireWriteAccess, previewMemo);
 router.post('/disciplinary-memos/send', requireWriteAccess, sendMemo);
+router.get('/disciplinary-memos/:id/download', requireWriteAccess, downloadMemo);
 
 export default router;

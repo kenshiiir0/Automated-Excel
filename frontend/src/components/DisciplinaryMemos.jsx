@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Icon from '../../Icon.jsx';
+import Modal from '../../Modal.jsx';
 
 const NARRATIVE_STARTERS = {
     NTE: 'Describe what happened: what rule was broken, when, and what the employee did (or failed to do). This becomes the "facts established" paragraph in the Notice to Explain.',
@@ -39,6 +40,8 @@ export default function DisciplinaryMemos() {
     const [previewUrl, setPreviewUrl] = useState(null);
     const [generating, setGenerating] = useState(false);
     const [sending, setSending] = useState(false);
+    const [showSendOptions, setShowSendOptions] = useState(false);
+    const [downloadingFromModal, setDownloadingFromModal] = useState(false);
 
     const showToast = useCallback((type, msg) => {
         setToast({ type, msg });
@@ -153,7 +156,73 @@ export default function DisciplinaryMemos() {
         }
     };
 
-    const handleSend = async () => {
+    // A separate, explicit Download button (distinct from Generate &
+    // Preview's new-tab behavior) -- always saves a file to disk rather
+    // than relying on the browser's own "save from a preview tab" action,
+    // which isn't obvious to everyone. Available once a memo can be
+    // generated, independent of whether Send has been used yet.
+    const handleDirectDownload = async () => {
+        setGenerating(true);
+        try {
+            const res = await fetch('/api/disciplinary-memos/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(buildPayload()),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Could not generate the document.');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const config = memoTypes.find(t => t.key === memoType);
+            const filename = `${(config?.label || memoType).replace(/\s+/g, '_')}_${(selectedEmployee.first_name || '')}_${(selectedEmployee.last_name || '')}.docx`.replace(/\s+/g, '_');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    // Per-row download in Recently Issued -- re-generates that exact
+    // memo from its stored fields (the backend never stores the binary
+    // file, only the fields used to build it) so a past memo can be
+    // pulled again later without redrafting it from scratch.
+    const handleDownloadHistoryMemo = async (memo) => {
+        try {
+            const res = await fetch(`/api/disciplinary-memos/${memo.id}/download`);
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Could not download this memo.');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const disposition = res.headers.get('Content-Disposition') || '';
+            const match = disposition.match(/filename="(.+)"/);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = match ? match[1] : `memo_${memo.id}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            showToast('error', err.message);
+        }
+    };
+
+    // toEmail comes from the Send Options modal -- whichever address HR
+    // picked (personal, work, or Zoho). The backend still validates this
+    // is actually one of the employee's own on-file addresses before
+    // using it, so this is never trusted blindly.
+    const handleSend = async (toEmail) => {
         if (!previewUrl) {
             showToast('error', 'Generate and review the document first.');
             return;
@@ -163,12 +232,13 @@ export default function DisciplinaryMemos() {
             const res = await fetch('/api/disciplinary-memos/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(buildPayload()),
+                body: JSON.stringify({ ...buildPayload(), toEmail }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not send the memo.');
             showToast('success', `Sent to ${data.toEmail}.`);
             setHistory(prev => [data.memo, ...prev]);
+            setShowSendOptions(false);
             // Reset the form for the next memo.
             setSelectedEmployee(null);
             setEmployeeSearch('');
@@ -182,6 +252,42 @@ export default function DisciplinaryMemos() {
             showToast('error', err.message);
         } finally {
             setSending(false);
+        }
+    };
+
+    // "Download only" in the modal -- forces a real file save (not just
+    // the preview tab) without emailing anyone. Re-generates the document
+    // fresh from the current form fields, same as Generate & Preview,
+    // then triggers a browser download via a throwaway <a download> link.
+    const handleDownloadOnly = async () => {
+        setDownloadingFromModal(true);
+        try {
+            const res = await fetch('/api/disciplinary-memos/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(buildPayload()),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Could not generate the document.');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const config = memoTypes.find(t => t.key === memoType);
+            const filename = `${(config?.label || memoType).replace(/\s+/g, '_')}_${(selectedEmployee.first_name || '')}_${(selectedEmployee.last_name || '')}.docx`.replace(/\s+/g, '_');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showToast('success', 'Downloaded. Not sent to the employee.');
+            setShowSendOptions(false);
+        } catch (err) {
+            showToast('error', err.message);
+        } finally {
+            setDownloadingFromModal(false);
         }
     };
 
@@ -326,11 +432,14 @@ export default function DisciplinaryMemos() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
-                    <button type="button" className="btn-ghost" disabled={!canGenerate || generating} onClick={handleGeneratePreview}>
+                    <button type="button" className="btn-ghost" disabled={!canGenerate || generating} onClick={handleGeneratePreview} title="Opens the document in a new tab for review">
                         {generating ? 'Generating…' : 'Generate & Preview'}
                     </button>
-                    <button type="button" className="btn-primary" disabled={!previewUrl || sending} onClick={handleSend} title={!previewUrl ? 'Generate and review the document first' : undefined}>
-                        {sending ? 'Sending…' : 'Send to Employee'}
+                    <button type="button" className="btn-ghost" disabled={!canGenerate || generating} onClick={handleDirectDownload} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Saves the document to your computer">
+                        <Icon name="download" size={14} /> Download
+                    </button>
+                    <button type="button" className="btn-primary" disabled={!previewUrl || sending} onClick={() => setShowSendOptions(true)} title={!previewUrl ? 'Generate and review the document first' : undefined}>
+                        {sending ? 'Sending…' : 'Send…'}
                     </button>
                 </div>
                 {previewUrl && (
@@ -339,6 +448,17 @@ export default function DisciplinaryMemos() {
                     </p>
                 )}
             </div>
+
+            {showSendOptions && selectedEmployee && (
+                <SendOptionsModal
+                    employee={selectedEmployee}
+                    sending={sending}
+                    downloading={downloadingFromModal}
+                    onClose={() => setShowSendOptions(false)}
+                    onSendTo={handleSend}
+                    onDownloadOnly={handleDownloadOnly}
+                />
+            )}
 
             <div className="section-title">Recently Issued</div>
             {history.length === 0 ? (
@@ -354,6 +474,7 @@ export default function DisciplinaryMemos() {
                                 <th>Type</th>
                                 <th>Sent</th>
                                 <th>To</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -363,6 +484,17 @@ export default function DisciplinaryMemos() {
                                     <td style={{ fontSize: 12, color: '#718096' }}>{(memoTypes.find(t => t.key === m.memo_type) || {}).label || m.memo_type}</td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(m.sent_at)}</td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{m.sent_to_email}</td>
+                                    <td>
+                                        <button
+                                            type="button"
+                                            className="btn-ghost"
+                                            style={{ fontSize: 11.5, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                                            onClick={() => handleDownloadHistoryMemo(m)}
+                                            title="Download this memo again"
+                                        >
+                                            <Icon name="download" size={12} /> Download
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -370,5 +502,83 @@ export default function DisciplinaryMemos() {
                 </div>
             )}
         </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// SendOptionsModal -- opened by the "Send…" button. Lets HR choose exactly
+// which address on file to send to (personal / work / Zoho -- whichever
+// actually exist for this employee), or skip emailing entirely and just
+// download the document instead. Only options with a real value show up;
+// an employee missing all three sees just the Download option, since
+// there's nowhere to send it.
+// ---------------------------------------------------------------------------
+function SendOptionsModal({ employee, sending, downloading, onClose, onSendTo, onDownloadOnly }) {
+    const emailOptions = [
+        { key: 'personal_email', label: 'Personal Email', value: employee.personal_email },
+        { key: 'email', label: 'Work Email', value: employee.email },
+        { key: 'zoho_email', label: 'Zoho Email', value: employee.zoho_email },
+    ].filter(opt => opt.value);
+
+    const [selected, setSelected] = useState(emailOptions[0]?.value || '');
+
+    const busy = sending || downloading;
+
+    return (
+        <Modal title="Send Disciplinary Memo" onClose={onClose} maxWidth={480}>
+            <p style={{ fontSize: 13.5, color: '#4a5568', marginTop: 0 }}>
+                Choose where to send this memo for <strong>{employee.first_name} {employee.last_name}</strong>,
+                or download it instead without emailing anyone.
+            </p>
+
+            {emailOptions.length === 0 ? (
+                <div className="login-error" style={{ marginBottom: 16 }}>
+                    No email on file for this employee (personal, work, or Zoho). You can still download the
+                    memo and deliver it another way, or add an email in Employee Details first.
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                    {emailOptions.map(opt => (
+                        <label
+                            key={opt.key}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                                border: `1px solid ${selected === opt.value ? '#1D9FDA' : '#e2e8f0'}`,
+                                borderRadius: 8, cursor: 'pointer',
+                                background: selected === opt.value ? '#f0f9ff' : '#fff',
+                            }}
+                        >
+                            <input
+                                type="radio"
+                                name="send-destination"
+                                checked={selected === opt.value}
+                                onChange={() => setSelected(opt.value)}
+                            />
+                            <span>
+                                <span style={{ fontWeight: 600, fontSize: 13 }}>{opt.label}</span>
+                                <span style={{ display: 'block', fontSize: 12, color: '#718096' }}>{opt.value}</span>
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
+                <button type="button" className="btn-ghost" disabled={busy} onClick={onDownloadOnly} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name="download" size={14} /> {downloading ? 'Downloading…' : 'Download only, don\'t email'}
+                </button>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button type="button" className="btn-ghost" disabled={busy} onClick={onClose}>Cancel</button>
+                    <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={busy || !selected}
+                        onClick={() => onSendTo(selected)}
+                    >
+                        {sending ? 'Sending…' : 'Send'}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     );
 }
