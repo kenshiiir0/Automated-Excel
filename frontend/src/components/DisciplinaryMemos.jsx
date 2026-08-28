@@ -17,6 +17,18 @@ function fmtDate(v) {
     }
 }
 
+// Native <select> popups size themselves to the widest option -- with the
+// full verbatim Code of Conduct wording (some entries run 400+ characters),
+// that makes the dropdown itself unusably wide/overflowing. Options show
+// this short version instead; the full text still appears below once a
+// rule is picked, and the "View Full Rules" button (see RulesReferenceModal)
+// covers reading the complete wording before picking.
+function truncateRuleLabel(text, maxLen = 70) {
+    const clean = text.replace(/^Rule No\. [0-9.]+ /, '');
+    if (clean.length <= maxLen) return clean;
+    return `${clean.slice(0, maxLen).trimEnd()}…`;
+}
+
 export default function DisciplinaryMemos({ visible } = {}) {
     const [employees, setEmployees] = useState([]);
     const [memoTypes, setMemoTypes] = useState([]);
@@ -30,6 +42,7 @@ export default function DisciplinaryMemos({ visible } = {}) {
     const [memoType, setMemoType] = useState('NTE');
     const [ruleCode, setRuleCode] = useState('');
     const [ruleText, setRuleText] = useState('');
+    const [showRulesReference, setShowRulesReference] = useState(false);
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
     const [bulletFacts, setBulletFacts] = useState('');
@@ -403,7 +416,17 @@ export default function DisciplinaryMemos({ visible } = {}) {
                     </div>
 
                     <div className="emp-form-group" style={{ gridColumn: '1 / -1' }}>
-                        <label className="emp-form-label">Company Rule Violated</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <label className="emp-form-label">Company Rule Violated</label>
+                            <button
+                                type="button"
+                                className="btn-ghost"
+                                style={{ fontSize: 11.5, padding: '3px 9px', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                                onClick={() => setShowRulesReference(true)}
+                            >
+                                <Icon name="file" size={12} /> View Full Rules
+                            </button>
+                        </div>
                         <select
                             className="emp-form-input"
                             value={ruleCode}
@@ -416,7 +439,7 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                 ) : (
                                     <optgroup key={group.category} label={group.categoryLabel}>
                                         {group.rules.map(r => (
-                                            <option key={r.code} value={r.code}>{`${r.code} — ${r.text.replace(/^Rule No\. [0-9.]+ /, '')}`}</option>
+                                            <option key={r.code} value={r.code}>{`${r.code} — ${truncateRuleLabel(r.text)}`}</option>
                                         ))}
                                     </optgroup>
                                 )
@@ -545,6 +568,14 @@ export default function DisciplinaryMemos({ visible } = {}) {
                 />
             )}
 
+            {showRulesReference && (
+                <RulesReferenceModal
+                    ruleGroups={ruleGroups}
+                    onClose={() => setShowRulesReference(false)}
+                    onPick={(code) => { handleRuleCodeChange(code); setShowRulesReference(false); }}
+                />
+            )}
+
             <div className="section-title">Recently Issued</div>
             {history.length === 0 ? (
                 <div className="table-card" style={{ padding: '32px 24px', textAlign: 'center', color: '#a0aec0', fontStyle: 'italic' }}>
@@ -593,6 +624,46 @@ export default function DisciplinaryMemos({ visible } = {}) {
                 </div>
             )}
         </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// RulesReferenceModal -- opened by "View Full Rules" next to the Company
+// Rule dropdown. The dropdown itself only shows short/truncated labels
+// (a native <select> sizes its popup to the widest option, and the real
+// Code of Conduct wording runs well past what that can handle), so this
+// is where HR reads the complete, verbatim text of every rule -- grouped
+// by category exactly like the dropdown -- before or after picking one.
+// Clicking a rule here selects it and closes the modal, same as picking
+// it directly from the dropdown.
+// ---------------------------------------------------------------------------
+function RulesReferenceModal({ ruleGroups, onClose, onPick }) {
+    return (
+        <Modal title="Company Rules Reference" onClose={onClose} maxWidth={640}>
+            <p style={{ fontSize: 12.5, color: '#718096', marginTop: 0, marginBottom: 16 }}>
+                Full text of every rule, from the Code of Conduct's List of Deviations. Click a rule to select it.
+            </p>
+            <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
+                {ruleGroups.map(group => (
+                    <div key={group.category} style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0F5777', marginBottom: 8 }}>
+                            {group.category === 'OTHER' ? 'Other' : group.categoryLabel}
+                        </div>
+                        {group.rules.map(r => (
+                            <div
+                                key={r.code}
+                                onClick={() => onPick(r.code)}
+                                style={{ padding: '8px 10px', borderRadius: 6, cursor: 'pointer', marginBottom: 4 }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#f0f9ff'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <span style={{ fontSize: 13, color: '#2d3748' }}>{r.text}</span>
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </Modal>
     );
 }
 
