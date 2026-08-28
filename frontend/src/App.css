@@ -3039,6 +3039,13 @@ button.profile-status-pill {
 .rule-dropdown-category {
   position: sticky;
   top: 0;
+  /* Explicit z-index is required here, not just a matter of polish --
+     .rule-dropdown-row below has its own `position: relative` (for the
+     tooltip bubble), which puts it in the same positioned-stacking layer
+     as this sticky header. Without this, rows painted later in the DOM
+     rendered ON TOP of the "stuck" header as you scrolled past them --
+     the header and the row underneath it showing through each other. */
+  z-index: 15;
   padding: 6px 12px;
   font-size: 11px;
   font-weight: 700;
