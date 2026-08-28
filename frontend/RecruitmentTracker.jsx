@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Icon from './Icon.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
@@ -71,7 +71,7 @@ const EMPTY_FORM = {
   previous_company: '', resume_url: '', remarks: ''
 };
 
-export default function RecruitmentTracker() {
+export default function RecruitmentTracker({ visible } = {}) {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -90,6 +90,17 @@ export default function RecruitmentTracker() {
   const [filterRecruiter, setFilterRecruiter] = useState('All');
 
   useEffect(() => { fetchCandidates(); }, []);
+
+  // See EmployeeList.jsx's identical comment: kept-alive pages only
+  // mount once per session, so this quietly re-fetches on returning to
+  // the page (skipping the first mount) without touching any
+  // in-progress form state.
+  const isFirstVisible = useRef(true);
+  useEffect(() => {
+    if (visible === undefined) return;
+    if (isFirstVisible.current) { isFirstVisible.current = false; return; }
+    if (visible) fetchCandidates();
+  }, [visible]);
 
   const fetchCandidates = async () => {
     setLoading(true);

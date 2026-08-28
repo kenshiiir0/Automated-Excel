@@ -41,34 +41,65 @@ export default function DisciplinaryMemos() {
     const [generating, setGenerating] = useState(false);
     const [sending, setSending] = useState(false);
     const [showSendOptions, setShowSendOptions] = useState(false);
-    const [downloadingFromModal, setDownloadingFromModal] = useState(false);
 
     const showToast = useCallback((type, msg) => {
         setToast({ type, msg });
         setTimeout(() => setToast(null), 4500);
     }, []);
 
+    // Loads employees, memo types/rules, and issue history independently
+    // (Promise.allSettled, not Promise.all) so one endpoint failing --
+    // say the employees list 500s -- doesn't blank out the other two
+    // that succeeded. Each failure is reported with its own real cause
+    // (the server's actual error message when there is one, the HTTP
+    // status otherwise, or the raw network error) rather than one vague
+    // "could not load" message that hides which part broke and why.
     useEffect(() => {
+        async function loadOne(url) {
+            const res = await fetch(url);
+            let body = null;
+            try { body = await res.json(); } catch { /* not JSON, e.g. an empty 500 */ }
+            if (!res.ok) {
+                const reason = body?.error || `HTTP ${res.status}`;
+                throw new Error(`${url} failed: ${reason}`);
+            }
+            return body;
+        }
+
         (async () => {
             setLoading(true);
-            try {
-                const [empRes, typesRes, historyRes] = await Promise.all([
-                    fetch('/api/employees'),
-                    fetch('/api/disciplinary-memos/types'),
-                    fetch('/api/disciplinary-memos'),
-                ]);
-                const empData = await empRes.json();
-                const typesData = await typesRes.json();
-                const historyData = await historyRes.json();
-                setEmployees(Array.isArray(empData) ? empData : []);
-                setMemoTypes(typesData.types || []);
-                setCompanyRules(typesData.rules || []);
-                setHistory(Array.isArray(historyData) ? historyData : []);
-            } catch (err) {
-                showToast('error', 'Could not load employees or memo history.');
-            } finally {
-                setLoading(false);
+            const [empResult, typesResult, historyResult] = await Promise.allSettled([
+                loadOne('/api/employees'),
+                loadOne('/api/disciplinary-memos/types'),
+                loadOne('/api/disciplinary-memos'),
+            ]);
+
+            const failures = [];
+
+            if (empResult.status === 'fulfilled') {
+                setEmployees(Array.isArray(empResult.value) ? empResult.value : []);
+            } else {
+                failures.push(empResult.reason?.message || 'Could not load employees.');
             }
+
+            if (typesResult.status === 'fulfilled') {
+                setMemoTypes(typesResult.value?.types || []);
+                setCompanyRules(typesResult.value?.rules || []);
+            } else {
+                failures.push(typesResult.reason?.message || 'Could not load memo types.');
+            }
+
+            if (historyResult.status === 'fulfilled') {
+                setHistory(Array.isArray(historyResult.value) ? historyResult.value : []);
+            } else {
+                failures.push(historyResult.reason?.message || 'Could not load memo history.');
+            }
+
+            if (failures.length > 0) {
+                showToast('error', failures.join(' — '));
+            }
+
+            setLoading(false);
         })();
     }, [showToast]);
 
@@ -255,42 +286,6 @@ export default function DisciplinaryMemos() {
         }
     };
 
-    // "Download only" in the modal -- forces a real file save (not just
-    // the preview tab) without emailing anyone. Re-generates the document
-    // fresh from the current form fields, same as Generate & Preview,
-    // then triggers a browser download via a throwaway <a download> link.
-    const handleDownloadOnly = async () => {
-        setDownloadingFromModal(true);
-        try {
-            const res = await fetch('/api/disciplinary-memos/preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(buildPayload()),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || 'Could not generate the document.');
-            }
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const config = memoTypes.find(t => t.key === memoType);
-            const filename = `${(config?.label || memoType).replace(/\s+/g, '_')}_${(selectedEmployee.first_name || '')}_${(selectedEmployee.last_name || '')}.docx`.replace(/\s+/g, '_');
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            showToast('success', 'Downloaded. Not sent to the employee.');
-            setShowSendOptions(false);
-        } catch (err) {
-            showToast('error', err.message);
-        } finally {
-            setDownloadingFromModal(false);
-        }
-    };
-
     if (loading) return <div className="page-loading">Loading…</div>;
 
     return (
@@ -380,8 +375,7 @@ export default function DisciplinaryMemos() {
                         <label className="emp-form-label">Date of Incident</label>
                         <input
                             className="emp-form-input"
-                            type="text"
-                            placeholder="e.g. August 20, 2026 (or a cutoff range)"
+                            type="date"
                             value={incidentDate}
                             onChange={e => setIncidentDate(e.target.value)}
                         />
@@ -453,10 +447,8 @@ export default function DisciplinaryMemos() {
                 <SendOptionsModal
                     employee={selectedEmployee}
                     sending={sending}
-                    downloading={downloadingFromModal}
                     onClose={() => setShowSendOptions(false)}
                     onSendTo={handleSend}
-                    onDownloadOnly={handleDownloadOnly}
                 />
             )}
 
@@ -513,7 +505,7 @@ export default function DisciplinaryMemos() {
 // an employee missing all three sees just the Download option, since
 // there's nowhere to send it.
 // ---------------------------------------------------------------------------
-function SendOptionsModal({ employee, sending, downloading, onClose, onSendTo, onDownloadOnly }) {
+function SendOptionsModal({ employee, sending, onClose, onSendTo }) {
     const emailOptions = [
         { key: 'personal_email', label: 'Personal Email', value: employee.personal_email },
         { key: 'email', label: 'Work Email', value: employee.email },
@@ -522,19 +514,18 @@ function SendOptionsModal({ employee, sending, downloading, onClose, onSendTo, o
 
     const [selected, setSelected] = useState(emailOptions[0]?.value || '');
 
-    const busy = sending || downloading;
+    const busy = sending;
 
     return (
         <Modal title="Send Disciplinary Memo" onClose={onClose} maxWidth={480}>
             <p style={{ fontSize: 13.5, color: '#4a5568', marginTop: 0 }}>
-                Choose where to send this memo for <strong>{employee.first_name} {employee.last_name}</strong>,
-                or download it instead without emailing anyone.
+                Choose where to send this memo for <strong>{employee.first_name} {employee.last_name}</strong>.
             </p>
 
             {emailOptions.length === 0 ? (
                 <div className="login-error" style={{ marginBottom: 16 }}>
-                    No email on file for this employee (personal, work, or Zoho). You can still download the
-                    memo and deliver it another way, or add an email in Employee Details first.
+                    No email on file for this employee (personal, work, or Zoho). Close this and use the
+                    Download button instead, or add an email in Employee Details first.
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
@@ -563,21 +554,16 @@ function SendOptionsModal({ employee, sending, downloading, onClose, onSendTo, o
                 </div>
             )}
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap' }}>
-                <button type="button" className="btn-ghost" disabled={busy} onClick={onDownloadOnly} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <Icon name="download" size={14} /> {downloading ? 'Downloading…' : 'Download only, don\'t email'}
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8, flexWrap: 'wrap' }}>
+                <button type="button" className="btn-ghost" disabled={busy} onClick={onClose}>Cancel</button>
+                <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={busy || !selected}
+                    onClick={() => onSendTo(selected)}
+                >
+                    {sending ? 'Sending…' : 'Send'}
                 </button>
-                <div style={{ display: 'flex', gap: 12 }}>
-                    <button type="button" className="btn-ghost" disabled={busy} onClick={onClose}>Cancel</button>
-                    <button
-                        type="button"
-                        className="btn-primary"
-                        disabled={busy || !selected}
-                        onClick={() => onSendTo(selected)}
-                    >
-                        {sending ? 'Sending…' : 'Send'}
-                    </button>
-                </div>
             </div>
         </Modal>
     );

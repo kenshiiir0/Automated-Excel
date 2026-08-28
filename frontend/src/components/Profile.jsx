@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from '../../Icon.jsx';
 import { useAuth } from '../../authContext.jsx';
 
@@ -30,7 +30,7 @@ function StatusPill({ ok, trueLabel, falseLabel }) {
     );
 }
 
-export default function Profile() {
+export default function Profile({ visible } = {}) {
     const { user: sessionUser, setUserFromProfile } = useAuth();
     const [profile, setProfile] = useState(null);
     const [employee, setEmployee] = useState(null);
@@ -60,6 +60,20 @@ export default function Profile() {
     }, []);
 
     useEffect(() => { loadProfile(); }, [loadProfile]);
+
+    // See EmployeeList.jsx's identical comment: kept-alive pages only
+    // mount once per session, so this quietly re-fetches on returning
+    // to the page (skipping the first mount). Safe alongside the name/
+    // phone edit form below -- that form seeds its own local state from
+    // `profile` only once, on its own mount (via useState's initializer),
+    // so a background refresh here never overwrites text already typed
+    // into it.
+    const isFirstVisible = useRef(true);
+    useEffect(() => {
+        if (visible === undefined) return;
+        if (isFirstVisible.current) { isFirstVisible.current = false; return; }
+        if (visible) loadProfile();
+    }, [visible, loadProfile]);
 
     if (loading) {
         return <div className="page-loading">Loading profile…</div>;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from '../../Icon.jsx';
 import Modal from '../../Modal.jsx';
 import { useAuth } from '../../authContext.jsx';
@@ -177,7 +177,7 @@ function CreateAccountModal({ onClose, onCreated, showToast }) {
     );
 }
 
-export default function UserManagement() {
+export default function UserManagement({ visible } = {}) {
     const { user: sessionUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -209,6 +209,17 @@ export default function UserManagement() {
     }, []);
 
     useEffect(() => { loadUsers(); }, [loadUsers]);
+
+    // See EmployeeList.jsx's identical comment: kept-alive pages only
+    // mount once per session, so this quietly re-fetches on returning
+    // to the page (skipping the first mount) without touching the
+    // Create Account modal or any in-progress form state.
+    const isFirstVisible = useRef(true);
+    useEffect(() => {
+        if (visible === undefined) return;
+        if (isFirstVisible.current) { isFirstVisible.current = false; return; }
+        if (visible) loadUsers();
+    }, [visible, loadUsers]);
 
     const handleRoleChange = async (id, role) => {
         setSavingId(id);

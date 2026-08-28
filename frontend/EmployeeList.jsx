@@ -174,7 +174,7 @@ const EMPTY_FORM = {
   emergency_contact_person: '', relationship: '', emergency_contact_details: '',
 };
 
-export default function EmployeeList() {
+export default function EmployeeList({ visible } = {}) {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -200,6 +200,20 @@ export default function EmployeeList() {
   const PAGE_SIZE = 20;
 
   useEffect(() => { fetchEmployees(); }, []);
+
+  // Kept-alive pages only mount once per session (see App.jsx), so this
+  // page would otherwise never see data changed elsewhere while you were
+  // on another tab. Quietly re-fetch whenever this page becomes visible
+  // again -- skips the very first mount (already covered above) and
+  // never touches any in-progress form state (Add Employee modal, typed
+  // fields, etc.), which all lives in this component untouched by a
+  // background refetch.
+  const isFirstVisible = useRef(true);
+  useEffect(() => {
+    if (visible === undefined) return; // not running under the keep-alive wrapper
+    if (isFirstVisible.current) { isFirstVisible.current = false; return; }
+    if (visible) fetchEmployees();
+  }, [visible]);
 
   const fetchEmployees = async () => {
     setLoading(true);

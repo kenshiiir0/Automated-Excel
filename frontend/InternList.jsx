@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Icon from './Icon.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
@@ -32,7 +32,7 @@ const EMPTY_FORM = {
   school: '', department: ''
 };
 
-export default function InternList() {
+export default function InternList({ visible } = {}) {
   const [interns, setInterns] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -53,6 +53,17 @@ export default function InternList() {
   const PAGE_SIZE = 20;
 
   useEffect(() => { fetchInterns(); }, []);
+
+  // See EmployeeList.jsx's identical comment: kept-alive pages only
+  // mount once per session, so this quietly re-fetches on returning to
+  // the page (skipping the first mount) without touching any
+  // in-progress form state.
+  const isFirstVisible = useRef(true);
+  useEffect(() => {
+    if (visible === undefined) return;
+    if (isFirstVisible.current) { isFirstVisible.current = false; return; }
+    if (visible) fetchInterns();
+  }, [visible]);
 
   const fetchInterns = async () => {
     setLoading(true);
