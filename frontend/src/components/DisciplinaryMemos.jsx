@@ -596,8 +596,8 @@ function SendOptionsModal({ employee, sending, onClose, onSendTo }) {
 
             {emailOptions.length === 0 ? (
                 <div className="login-error" style={{ marginBottom: 16 }}>
-                    No email on file for this employee (personal, work, or Zoho). Close this and use the
-                    Download button instead, or add an email in Employee Details first.
+                    No email on file for this employee (personal, work, or Zoho). Add one in
+                    Employee Details before sending.
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
