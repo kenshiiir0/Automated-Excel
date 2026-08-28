@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Icon from './Icon.jsx';
+import CustomSelect from './CustomSelect.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
 import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
@@ -172,24 +173,25 @@ export default function InternList({ visible } = {}) {
       return (
         <div className="emp-form-group">
           <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
-          <select
+          <CustomSelect
             className="emp-form-input"
             value={isOther ? 'OTHER' : (currentValueIsKnown ? formData[key] : '')}
-            onChange={e => {
-              if (e.target.value === 'OTHER') {
+            onChange={v => {
+              if (v === 'OTHER') {
                 setOtherFields({ ...otherFields, [key]: true });
                 setFormData({ ...formData, [key]: '' });
               } else {
                 setOtherFields({ ...otherFields, [key]: false });
-                setFormData({ ...formData, [key]: e.target.value });
+                setFormData({ ...formData, [key]: v });
               }
             }}
             required={opts.required && !isOther}
-          >
-            <option value="" disabled>Select {label.toLowerCase()}…</option>
-            {knownOptions.map(o => <option key={o} value={o}>{o}</option>)}
-            <option value="OTHER">Other (type manually)</option>
-          </select>
+            placeholder={`Select ${label.toLowerCase()}…`}
+            options={[
+              ...knownOptions.map(o => ({ value: o, label: o })),
+              { value: 'OTHER', label: 'Other (type manually)' },
+            ]}
+          />
           {isOther && (
             <input
               className="emp-form-input"
@@ -318,14 +320,18 @@ export default function InternList({ visible } = {}) {
           />
           {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
         </div>
-        <select className="filter-select" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-          <option value="All">All Departments</option>
-          {departments.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="filter-select" value={filterSchool} onChange={e => setFilterSchool(e.target.value)}>
-          <option value="All">All Schools</option>
-          {schools.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <CustomSelect
+          className="filter-select"
+          value={filterDept}
+          onChange={setFilterDept}
+          options={[{ value: 'All', label: 'All Departments' }, ...departments.map(d => ({ value: d, label: d }))]}
+        />
+        <CustomSelect
+          className="filter-select"
+          value={filterSchool}
+          onChange={setFilterSchool}
+          options={[{ value: 'All', label: 'All Schools' }, ...schools.map(s => ({ value: s, label: s }))]}
+        />
         <span className="results-count">{filtered.length} of {interns.length}</span>
       </div>
 

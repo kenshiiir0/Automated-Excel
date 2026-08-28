@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import EmployeeDetailModal from './src/components/EmployeeDetailModal.jsx';
 import Modal from './Modal.jsx';
 import Icon from './Icon.jsx';
+import CustomSelect from './CustomSelect.jsx';
 import { useAuth } from './authContext.jsx';
 import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
 import ExportConfirmModal from './ExportConfirmModal.jsx';
@@ -333,24 +334,25 @@ export default function EmployeeList({ visible } = {}) {
       return (
         <div className="emp-form-group">
           <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
-          <select
+          <CustomSelect
             className="emp-form-input"
             value={isOther ? 'OTHER' : (currentValueIsKnown ? formData[key] : '')}
-            onChange={e => {
-              if (e.target.value === 'OTHER') {
+            onChange={v => {
+              if (v === 'OTHER') {
                 setOtherFields({ ...otherFields, [key]: true });
                 setFormData({ ...formData, [key]: '' });
               } else {
                 setOtherFields({ ...otherFields, [key]: false });
-                setFormData({ ...formData, [key]: e.target.value });
+                setFormData({ ...formData, [key]: v });
               }
             }}
             required={opts.required && !isOther}
-          >
-            <option value="" disabled>Select {label.toLowerCase()}…</option>
-            {knownOptions.map(o => <option key={o} value={o}>{o}</option>)}
-            <option value="OTHER">Other (type manually)</option>
-          </select>
+            placeholder={`Select ${label.toLowerCase()}…`}
+            options={[
+              ...knownOptions.map(o => ({ value: o, label: o })),
+              { value: 'OTHER', label: 'Other (type manually)' },
+            ]}
+          />
           {isOther && (
             <input
               className="emp-form-input"
@@ -387,14 +389,13 @@ export default function EmployeeList({ visible } = {}) {
       <div className="emp-form-group">
         <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
         {opts.select ? (
-          <select
+          <CustomSelect
             className="emp-form-input"
             value={formData[key]}
-            onChange={e => setFormData({ ...formData, [key]: e.target.value })}
+            onChange={v => setFormData({ ...formData, [key]: v })}
             required={opts.required}
-          >
-            {opts.options.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
+            options={opts.options.map(o => ({ value: o, label: o || '—' }))}
+          />
         ) : (
           <input
             className="emp-form-input"
@@ -589,26 +590,43 @@ export default function EmployeeList({ visible } = {}) {
             <button className="search-clear" onClick={() => setSearch('')}>✕</button>
           )}
         </div>
-        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="All">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Resigned">Resigned</option>
-        </select>
-        <select className="filter-select" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
-          <option value="All">All Classification</option>
-          <option value="Regular">Regular</option>
-          <option value="Probationary">Probationary</option>
-        </select>
-        <select className="filter-select" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-          <option value="All">All Departments</option>
-          {departments.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="filter-select" value={filterCompleteness} onChange={e => setFilterCompleteness(e.target.value)}>
-          <option value="All">All Records</option>
-          <option value="Incomplete">Incomplete Only</option>
-          <option value="Complete">Complete Only</option>
-        </select>
+        <CustomSelect
+          className="filter-select"
+          value={filterStatus}
+          onChange={setFilterStatus}
+          options={[
+            { value: 'All', label: 'All Status' },
+            { value: 'Active', label: 'Active' },
+            { value: 'Inactive', label: 'Inactive' },
+            { value: 'Resigned', label: 'Resigned' },
+          ]}
+        />
+        <CustomSelect
+          className="filter-select"
+          value={filterClass}
+          onChange={setFilterClass}
+          options={[
+            { value: 'All', label: 'All Classification' },
+            { value: 'Regular', label: 'Regular' },
+            { value: 'Probationary', label: 'Probationary' },
+          ]}
+        />
+        <CustomSelect
+          className="filter-select"
+          value={filterDept}
+          onChange={setFilterDept}
+          options={[{ value: 'All', label: 'All Departments' }, ...departments.map(d => ({ value: d, label: d }))]}
+        />
+        <CustomSelect
+          className="filter-select"
+          value={filterCompleteness}
+          onChange={setFilterCompleteness}
+          options={[
+            { value: 'All', label: 'All Records' },
+            { value: 'Incomplete', label: 'Incomplete Only' },
+            { value: 'Complete', label: 'Complete Only' },
+          ]}
+        />
         <span className="results-count">{filtered.length} of {employees.length}</span>
       </div>
 

@@ -12,9 +12,18 @@ import Icon from './Icon.jsx';
 // and `options` as an array of either plain strings or {value, label}
 // objects. `className` is applied to the visible control box so callers
 // can reuse existing sizing classes (emp-form-input, filter-select, etc).
-export default function CustomSelect({ value, onChange, options, className = '', placeholder, disabled = false, style }) {
+//
+// `required`: when true, a visually-hidden native <select required> is
+// kept in sync with `value` right alongside the visible custom control.
+// It participates in the surrounding <form>'s native validation exactly
+// like a real required select would (blocks submit, shows the browser's
+// "please fill this field" bubble anchored to the visible control) --
+// this exists purely so swapping a required native <select> for this
+// component doesn't silently drop that validation.
+export default function CustomSelect({ value, onChange, options, className = '', placeholder, disabled = false, required = false, style }) {
     const [open, setOpen] = useState(false);
     const wrapRef = useRef(null);
+    const hiddenSelectRef = useRef(null);
 
     useEffect(() => {
         if (!open) return;
@@ -34,7 +43,10 @@ export default function CustomSelect({ value, onChange, options, className = '',
         <div className="custom-select-wrap" ref={wrapRef} style={{ position: 'relative', ...style }}>
             <div
                 className={`custom-select-control ${className} ${disabled ? 'custom-select-disabled' : ''}`}
-                onClick={() => { if (!disabled) setOpen(o => !o); }}
+                onClick={() => {
+                    if (disabled) return;
+                    setOpen(o => !o);
+                }}
                 tabIndex={disabled ? -1 : 0}
                 onKeyDown={e => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setOpen(o => !o); } }}
             >
@@ -55,6 +67,26 @@ export default function CustomSelect({ value, onChange, options, className = '',
                         </div>
                     ))}
                 </div>
+            )}
+            {required && (
+                <select
+                    ref={hiddenSelectRef}
+                    className="custom-select-hidden-native"
+                    value={value ?? ''}
+                    required
+                    // Read-only from the user's perspective (the visible
+                    // control above is what they interact with) -- this
+                    // exists only so the browser's native form validation
+                    // sees a required field that is/isn't filled in.
+                    onChange={() => {}}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                >
+                    <option value="" disabled>—</option>
+                    {normalized.filter(o => o.value !== '').map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                </select>
             )}
         </div>
     );

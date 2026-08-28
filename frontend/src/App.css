@@ -3223,3 +3223,20 @@ button.profile-status-pill {
   font-weight: 600;
 }
 
+/* Invisible but present/focusable native <select> stacked on top of the
+   custom control when CustomSelect is used with `required` -- keeps the
+   browser's native form validation (blocks submit, shows the "please
+   fill this field" bubble anchored to this exact spot) working for
+   required fields, since the visible custom control is a div, not a
+   real form control, and can't participate in that on its own. */
+.custom-select-hidden-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+}
+
+

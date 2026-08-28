@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Icon from './Icon.jsx';
+import CustomSelect from './CustomSelect.jsx';
 import Modal from './Modal.jsx';
 import { useAuth } from './authContext.jsx';
 import { exportRowsToExcel, todayStamp } from './exportToExcel.js';
@@ -231,10 +232,12 @@ export default function RecruitmentTracker({ visible } = {}) {
     <div className="emp-form-group">
       <label className="emp-form-label">{label}{opts.required && <span style={{ color: '#e53e3e' }}> *</span>}</label>
       {opts.select ? (
-        <select className="emp-form-input" value={formData[key]}
-          onChange={e => setFormData({ ...formData, [key]: e.target.value })}>
-          {opts.options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <CustomSelect
+          className="emp-form-input"
+          value={formData[key]}
+          onChange={v => setFormData({ ...formData, [key]: v })}
+          options={opts.options.map(o => ({ value: o, label: o || '—' }))}
+        />
       ) : (
         <input className="emp-form-input" type={type}
           placeholder={opts.placeholder || label}
@@ -370,19 +373,28 @@ export default function RecruitmentTracker({ visible } = {}) {
           />
           {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
         </div>
-        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="All">All Status</option>
-          {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className="filter-select" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-          <option value="All">All Departments</option>
-          {departments.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select className="filter-select" value={filterRecruiter} onChange={e => setFilterRecruiter(e.target.value)}>
-          <option value="All">All Recruiters</option>
-          {recruiters.map(r => <option key={r} value={r}>{r}</option>)}
-          <option value="Unassigned">Unassigned</option>
-        </select>
+        <CustomSelect
+          className="filter-select"
+          value={filterStatus}
+          onChange={setFilterStatus}
+          options={[{ value: 'All', label: 'All Status' }, ...uniqueStatuses.map(s => ({ value: s, label: s }))]}
+        />
+        <CustomSelect
+          className="filter-select"
+          value={filterDept}
+          onChange={setFilterDept}
+          options={[{ value: 'All', label: 'All Departments' }, ...departments.map(d => ({ value: d, label: d }))]}
+        />
+        <CustomSelect
+          className="filter-select"
+          value={filterRecruiter}
+          onChange={setFilterRecruiter}
+          options={[
+            { value: 'All', label: 'All Recruiters' },
+            ...recruiters.map(r => ({ value: r, label: r })),
+            { value: 'Unassigned', label: 'Unassigned' },
+          ]}
+        />
         <span className="results-count">{filtered.length} of {candidates.length}</span>
       </div>
 
@@ -474,22 +486,23 @@ export default function RecruitmentTracker({ visible } = {}) {
                   <td style={{ fontSize: 12, color: '#718096' }}>{c.previous_company || '—'}</td>
                   <td>
                     {canWrite ? (
-                      <select
+                      <CustomSelect
                         className="status-select"
                         value={c.status || ''}
-                        onChange={e => handleUpdateStatus(c.id, e.target.value)}
-                        style={{ '--dot-color': getStatusMeta(c.status).dot }}
-                      >
-                        <option value={c.status}>{c.status}</option>
-                        <option value="Applied">Applied</option>
-                        <option value="Screening">Screening</option>
-                        <option value="Interview">Interview</option>
-                        <option value="Offer">Offer</option>
-                        <option value="Hired">Hired</option>
-                        <option value="Closed">Closed</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="Withdrawn">Withdrawn</option>
-                      </select>
+                        onChange={v => handleUpdateStatus(c.id, v)}
+                        options={[
+                          ...(c.status && !['Applied', 'Screening', 'Interview', 'Offer', 'Hired', 'Closed', 'Rejected', 'Withdrawn'].includes(c.status)
+                            ? [{ value: c.status, label: c.status }] : []),
+                          { value: 'Applied', label: 'Applied' },
+                          { value: 'Screening', label: 'Screening' },
+                          { value: 'Interview', label: 'Interview' },
+                          { value: 'Offer', label: 'Offer' },
+                          { value: 'Hired', label: 'Hired' },
+                          { value: 'Closed', label: 'Closed' },
+                          { value: 'Rejected', label: 'Rejected' },
+                          { value: 'Withdrawn', label: 'Withdrawn' },
+                        ]}
+                      />
                     ) : (
                       <StatusBadge status={c.status} />
                     )}
