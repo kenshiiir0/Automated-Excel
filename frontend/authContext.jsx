@@ -38,6 +38,13 @@ function stampLastActive() {
 // missing/expired/invalid), it clears the stored session and reloads to
 // the login screen -- so an expired session surfaces as "please log in
 // again" instead of a confusing blank page or silent failure.
+//
+// onUnauthorized now receives the server's actual error message (e.g.
+// "Session expired or invalid. Please log in again." from requireAuth.js)
+// instead of just being a bare signal -- this is what lets the app show
+// a real, specific reason instead of the page just silently snapping back
+// to the login screen with no explanation, which is what made a forced
+// logout look identical to an unexplained "restart".
 function installAuthFetch(onUnauthorized) {
     if (window.__hrFetchPatched) return;
     window.__hrFetchPatched = true;
@@ -63,14 +70,38 @@ function installAuthFetch(onUnauthorized) {
         // "slow" the way there is for "offline", so request duration is
         // used as a proxy. Reported for every /api/ call, auth included,
         // since a slow login should surface the same warning.
+        //
+        // draft-narrative is excluded from this timing report on purpose:
+        // it's a real AI (Gemini) call that legitimately takes several
+        // seconds even when everything is working correctly -- reporting
+        // its normal latency here made the generic "Slow connection
+        // detected" banner fire on ordinary successful drafts, which is
+        // actively misleading (it looks like a network problem when
+        // there isn't one) and duplicates/contradicts the AI Draft
+        // button's own specific status (its ticking counter while
+        // waiting, and a real success/error toast once it's done).
+        const isDraftNarrativeCall = url.startsWith('/api/disciplinary-memos/draft-narrative');
         const startedAt = Date.now();
         try {
             const res = await originalFetch(input, init);
-            if (isApiCall) {
+            if (isApiCall && !isDraftNarrativeCall) {
                 reportApiRequestTiming(Date.now() - startedAt, false);
             }
             if (isApiCall && !isAuthCall && res.status === 401) {
-                onUnauthorized();
+                // Try to read the server's specific reason before the
+                // caller (whatever component made this fetch) also reads
+                // the body -- res.clone() means both can read it
+                // independently without "body already used" errors.
+                let reason = 'Your session has expired. Please log in again.';
+                try {
+                    const cloned = res.clone();
+                    const body = await cloned.json();
+                    if (body && body.error) reason = body.error;
+                } catch {
+                    // Not JSON, or already consumed -- fall back to the
+                    // generic message rather than failing the whole flow.
+                }
+                onUnauthorized(reason);
             }
             return res;
         } catch (err) {
@@ -78,7 +109,7 @@ function installAuthFetch(onUnauthorized) {
             // the 'offline' browser event usually covers this already,
             // but counting it as "slow/failed" here too means a flaky
             // connection that isn't fully offline still gets flagged.
-            if (isApiCall) {
+            if (isApiCall && !isDraftNarrativeCall) {
                 reportApiRequestTiming(Date.now() - startedAt, true);
             }
             throw err;
@@ -112,6 +143,13 @@ export function AuthProvider({ children }) {
     // screen from just snapping away with no feedback.
     const [loggingOut, setLoggingOut] = useState(false);
 
+    // Set only when logout was FORCED by the server rejecting a request
+    // (a real 401), as opposed to the person clicking "Log out"
+    // themselves. Read once by Login.jsx to show a real reason (e.g.
+    // "Your session expired after 12 hours") instead of the screen just
+    // silently reappearing with no explanation of what happened.
+    const [sessionExpiredReason, setSessionExpiredReason] = useState(null);
+
     const logout = useCallback(() => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
@@ -120,10 +158,27 @@ export function AuthProvider({ children }) {
         setLoggingOut(false);
     }, []);
 
-    const logoutWithDelay = useCallback(() => {
+    const logoutWithDelay = useCallback((reason) => {
+        // reason is only meaningful when this came from a forced 401 (see
+        // installAuthFetch above / onForcedLogout below), where it's a
+        // real message string. Navigation.jsx wires this straight up as
+        // onClick={logout} for the manual "Log out" button, which means
+        // React passes a SyntheticEvent as this same argument on a normal
+        // click -- the typeof check is what keeps that from being
+        // mistaken for a session-expired reason and shown as a bogus
+        // error on an ordinary, deliberate logout.
+        if (typeof reason === 'string' && reason) setSessionExpiredReason(reason);
         setLoggingOut(true);
         setTimeout(() => logout(), 450);
     }, [logout]);
+
+    // Wraps logoutWithDelay specifically for installAuthFetch's
+    // onUnauthorized callback so the reason string from a real 401 always
+    // reaches sessionExpiredReason, independent of whatever
+    // AuthContext.logout consumers pass (they never pass a reason).
+    const onForcedLogout = useCallback((reason) => {
+        logoutWithDelay(reason);
+    }, [logoutWithDelay]);
 
     // Patched synchronously during render (NOT inside useEffect) so that
     // window.fetch already carries the auth header before any child
@@ -134,7 +189,7 @@ export function AuthProvider({ children }) {
     // with no Authorization header at all -- a real, correct 401 from
     // the server, but a confusing one since the token was fine all
     // along. Calling it directly in the component body avoids that race.
-    installAuthFetch(logout);
+    installAuthFetch(onForcedLogout);
 
     // Keeps LAST_ACTIVE_KEY fresh while this tab is open and visible, so
     // "time since last active" only starts counting once the tab is
@@ -178,6 +233,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem(TOKEN_KEY, data.token);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         stampLastActive();
+        setSessionExpiredReason(null);
         setUser(data.user);
     }, []);
 
@@ -223,7 +279,17 @@ export function AuthProvider({ children }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, login, logout: logoutWithDelay, loggingOut, requestSignupOtp, verifySignupOtp, setUserFromProfile }}>
+        <AuthContext.Provider value={{
+            user,
+            login,
+            logout: logoutWithDelay,
+            loggingOut,
+            sessionExpiredReason,
+            clearSessionExpiredReason: () => setSessionExpiredReason(null),
+            requestSignupOtp,
+            verifySignupOtp,
+            setUserFromProfile,
+        }}>
             {children}
         </AuthContext.Provider>
     );

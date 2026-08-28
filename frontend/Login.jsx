@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './authContext.jsx';
 import Icon from './Icon.jsx';
 import { GETMEDS_LOGO_FULL } from './brandAssets.js';
@@ -44,12 +44,23 @@ export default function Login() {
 // Step: Login
 // ---------------------------------------------------------------------------
 function LoginForm({ onSwitchToSignup }) {
-    const { login } = useAuth();
+    const { login, sessionExpiredReason, clearSessionExpiredReason } = useAuth();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Shows exactly why the app landed back here when it was a forced
+    // logout (a real 401 -- expired/invalid session), instead of the
+    // login screen just reappearing with no explanation. A deliberate
+    // "Log out" click never sets this, so it stays silent for that case.
+    useEffect(() => {
+        if (sessionExpiredReason) {
+            setError(sessionExpiredReason);
+            clearSessionExpiredReason();
+        }
+    }, [sessionExpiredReason, clearSessionExpiredReason]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

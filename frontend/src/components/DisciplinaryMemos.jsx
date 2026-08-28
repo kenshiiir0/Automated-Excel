@@ -17,7 +17,7 @@ function fmtDate(v) {
     }
 }
 
-export default function DisciplinaryMemos() {
+export default function DisciplinaryMemos({ visible } = {}) {
     const [employees, setEmployees] = useState([]);
     const [memoTypes, setMemoTypes] = useState([]);
     const [companyRules, setCompanyRules] = useState([]);
@@ -46,7 +46,12 @@ export default function DisciplinaryMemos() {
 
     const showToast = useCallback((type, msg) => {
         setToast({ type, msg });
-        setTimeout(() => setToast(null), 4500);
+        // Errors stay up longer than a success toast -- an error message
+        // here is often the real, specific reason something failed (a
+        // Gemini/SMTP error, an HTTP status, etc.), and 4.5s is often not
+        // enough time to actually read and register a longer message
+        // before it disappears.
+        setTimeout(() => setToast(null), type === 'error' ? 8000 : 4500);
     }, []);
 
     // Loads employees, memo types/rules, and issue history independently
@@ -56,7 +61,7 @@ export default function DisciplinaryMemos() {
     // (the server's actual error message when there is one, the HTTP
     // status otherwise, or the raw network error) rather than one vague
     // "could not load" message that hides which part broke and why.
-    useEffect(() => {
+    const loadAll = useCallback(async ({ showSpinner } = { showSpinner: true }) => {
         async function loadOne(url) {
             const res = await fetch(url);
             let body = null;
@@ -68,42 +73,65 @@ export default function DisciplinaryMemos() {
             return body;
         }
 
-        (async () => {
-            setLoading(true);
-            const [empResult, typesResult, historyResult] = await Promise.allSettled([
-                loadOne('/api/employees'),
-                loadOne('/api/disciplinary-memos/types'),
-                loadOne('/api/disciplinary-memos'),
-            ]);
+        if (showSpinner) setLoading(true);
+        const [empResult, typesResult, historyResult] = await Promise.allSettled([
+            loadOne('/api/employees'),
+            loadOne('/api/disciplinary-memos/types'),
+            loadOne('/api/disciplinary-memos'),
+        ]);
 
-            const failures = [];
+        const failures = [];
 
-            if (empResult.status === 'fulfilled') {
-                setEmployees(Array.isArray(empResult.value) ? empResult.value : []);
-            } else {
-                failures.push(empResult.reason?.message || 'Could not load employees.');
-            }
+        if (empResult.status === 'fulfilled') {
+            setEmployees(Array.isArray(empResult.value) ? empResult.value : []);
+        } else {
+            failures.push(empResult.reason?.message || 'Could not load employees.');
+        }
 
-            if (typesResult.status === 'fulfilled') {
-                setMemoTypes(typesResult.value?.types || []);
-                setCompanyRules(typesResult.value?.rules || []);
-            } else {
-                failures.push(typesResult.reason?.message || 'Could not load memo types.');
-            }
+        if (typesResult.status === 'fulfilled') {
+            setMemoTypes(typesResult.value?.types || []);
+            setCompanyRules(typesResult.value?.rules || []);
+        } else {
+            failures.push(typesResult.reason?.message || 'Could not load memo types.');
+        }
 
-            if (historyResult.status === 'fulfilled') {
-                setHistory(Array.isArray(historyResult.value) ? historyResult.value : []);
-            } else {
-                failures.push(historyResult.reason?.message || 'Could not load memo history.');
-            }
+        if (historyResult.status === 'fulfilled') {
+            setHistory(Array.isArray(historyResult.value) ? historyResult.value : []);
+        } else {
+            failures.push(historyResult.reason?.message || 'Could not load memo history.');
+        }
 
-            if (failures.length > 0) {
-                showToast('error', failures.join(' — '));
-            }
+        if (failures.length > 0) {
+            showToast('error', failures.join(' — '));
+        }
 
-            setLoading(false);
-        })();
+        if (showSpinner) setLoading(false);
     }, [showToast]);
+
+    // Initial load -- runs once, the first time this page is ever mounted.
+    useEffect(() => {
+        loadAll();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Refresh-on-return: this page stays mounted in the background once
+    // visited (see App.jsx's keep-alive PageRouter), so this effect only
+    // re-fires on the hidden -> visible transition, not on every mount.
+    // isFirstVisible skips the redundant call on the very first time this
+    // page becomes visible (loadAll() above already just ran for that).
+    // Deliberately does NOT touch or reset any of the in-progress form
+    // state below (selectedEmployee, bulletFacts, incidentNarrative,
+    // etc.) -- it only refreshes the read-only lists (employees, memo
+    // types/rules, history), the same "quiet background refresh" pattern
+    // used on Employees/Interns/Recruitment/Profile/Manage Users, so
+    // switching away mid-draft and coming back no longer risks losing
+    // what was typed.
+    const isFirstVisible = useRef(true);
+    useEffect(() => {
+        if (visible === undefined) return;
+        if (isFirstVisible.current) { isFirstVisible.current = false; return; }
+        if (visible) loadAll({ showSpinner: false });
+    }, [visible, loadAll]);
 
     // Clear any previous preview whenever the underlying inputs change --
     // an old preview left on screen after editing a field would silently
