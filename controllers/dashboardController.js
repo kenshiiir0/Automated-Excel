@@ -5,7 +5,8 @@ export const getDashboardStats = async (req, res) => {
   try {
     const { data: employees, error } = await supabaseAdmin
       .from('employees')
-      .select('employment_status, employment_classification, hire_date, exit_date, separation_reason');
+      .select('employment_status, employment_classification, hire_date, exit_date, separation_reason')
+      .eq('is_archived', false);
     if (error) throw error;
 
     const currentYear = new Date().getFullYear();
@@ -42,7 +43,8 @@ export const getDashboardStats = async (req, res) => {
 
     const { data: candidates, error: candError } = await supabaseAdmin
       .from('recruitment_candidates')
-      .select('status, source_sheet');
+      .select('status, source_sheet')
+      .eq('is_archived', false);
     if (candError) throw candError;
 
     // Total interns currently on file. Interns have no employment_status
@@ -51,7 +53,8 @@ export const getDashboardStats = async (req, res) => {
     // active/inactive distinction to make.
     const { count: internCount, error: internError } = await supabaseAdmin
       .from('interns')
-      .select('id', { count: 'exact', head: true });
+      .select('id', { count: 'exact', head: true })
+      .eq('is_archived', false);
     if (internError) throw internError;
 
     // Counts every candidate regardless of source_sheet, so this always
@@ -91,6 +94,7 @@ export const getDepartmentDistribution = async (req, res) => {
         const { data, error } = await supabaseAdmin
             .from('employees')
             .select('department')
+            .eq('is_archived', false)
             .not('department', 'is', null);
 
         if (error) throw error;
@@ -119,6 +123,7 @@ export const getEmploymentStatusDistribution = async (req, res) => {
         const { data, error } = await supabaseAdmin
             .from('employees')
             .select('employment_status')
+            .eq('is_archived', false)
             .not('employment_status', 'is', null);
 
         if (error) throw error;
@@ -147,6 +152,7 @@ export const getCandidatePipeline = async (req, res) => {
         const { data, error } = await supabaseAdmin
             .from('recruitment_candidates')
             .select('status')
+            .eq('is_archived', false)
             .not('status', 'is', null);
 
         if (error) throw error;
@@ -219,6 +225,7 @@ export const getWorkAnniversaries = async (req, res) => {
             .from('employees')
             .select('id, emp_id, first_name, last_name, department, position, hire_date')
             .eq('employment_status', 'Active')
+            .eq('is_archived', false)
             .not('hire_date', 'is', null);
 
         if (error) throw error;
@@ -266,6 +273,7 @@ export const getUpForRegularization = async (req, res) => {
             .from('employees')
             .select('id, emp_id, first_name, last_name, department, position, hire_date, regularization_date')
             .eq('employment_status', 'Active')
+            .eq('is_archived', false)
             .not('regularization_date', 'is', null);
 
         if (error) throw error;
@@ -305,6 +313,7 @@ export const getUpcomingActions = async (req, res) => {
             .from('employees')
             .select('id, emp_id, first_name, last_name, department, hire_date, regularization_date')
             .eq('employment_status', 'Active')
+            .eq('is_archived', false)
             .not('regularization_date', 'is', null);
         if (regError) throw regError;
 
@@ -328,6 +337,7 @@ export const getUpcomingActions = async (req, res) => {
             .from('employees')
             .select('id, emp_id, first_name, last_name, department, hire_date')
             .eq('employment_status', 'Active')
+            .eq('is_archived', false)
             .not('hire_date', 'is', null);
         if (annError) throw annError;
 
@@ -369,6 +379,7 @@ export const getHiringTrends = async (req, res) => {
         const { data, error } = await supabaseAdmin
             .from('employees')
             .select('hire_date')
+            .eq('is_archived', false)
             .not('hire_date', 'is', null);
 
         if (error) throw error;
@@ -400,14 +411,16 @@ export const getAttritionRate = async (req, res) => {
     try {
         const { count: totalEmployees, error: empError } = await supabaseAdmin
             .from('employees')
-            .select('id', { count: 'exact', head: true });
+            .select('id', { count: 'exact', head: true })
+            .eq('is_archived', false);
 
         if (empError) throw empError;
 
         const { count: inactiveCount, error: inactiveError } = await supabaseAdmin
             .from('employees')
             .select('id', { count: 'exact', head: true })
-            .eq('employment_status', 'Inactive');
+            .eq('employment_status', 'Inactive')
+            .eq('is_archived', false);
 
         if (inactiveError) throw inactiveError;
 
@@ -436,7 +449,8 @@ export const getRecruitmentMetrics = async (req, res) => {
             const { count, error } = await supabaseAdmin
                 .from('recruitment_candidates')
                 .select('id', { count: 'exact', head: true })
-                .eq('status', status);
+                .eq('status', status)
+                .eq('is_archived', false);
 
             if (!error) {
                 metrics[status] = count || 0;
@@ -457,6 +471,7 @@ export const getGenderDistribution = async (req, res) => {
       .from('employees')
       .select('gender')
       .eq('employment_status', 'Active')
+      .eq('is_archived', false)
       .not('gender', 'is', null);
     if (error) throw error;
 
@@ -480,6 +495,7 @@ export const getActiveByDept = async (req, res) => {
       .from('employees')
       .select('department')
       .eq('employment_status', 'Active')
+      .eq('is_archived', false)
       .not('department', 'is', null);
     if (error) throw error;
 
@@ -503,6 +519,7 @@ export const getActiveStatus = async (req, res) => {
       .from('employees')
       .select('employment_classification')
       .eq('employment_status', 'Active')
+      .eq('is_archived', false)
       .not('employment_classification', 'is', null);
     if (error) throw error;
 
@@ -522,7 +539,8 @@ export const getMonthlyTrend = async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('employees')
-      .select('hire_date, exit_date');
+      .select('hire_date, exit_date')
+      .eq('is_archived', false);
     if (error) throw error;
 
     const currentYear = new Date().getFullYear();
@@ -555,7 +573,8 @@ export const getSeparationReasons = async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from('employees')
       .select('separation_reason, exit_date')
-      .eq('employment_status', 'Inactive');
+      .eq('employment_status', 'Inactive')
+      .eq('is_archived', false);
     if (error) throw error;
 
     const currentYear = new Date().getFullYear();
@@ -583,6 +602,7 @@ export const getSeparationsByDept = async (req, res) => {
       .from('employees')
       .select('department')
       .eq('employment_status', 'Inactive')
+      .eq('is_archived', false)
       .not('department', 'is', null);
     if (error) throw error;
 
@@ -605,6 +625,7 @@ export const getRecruitmentPipeline = async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from('recruitment_candidates')
       .select('status, source_sheet')
+      .eq('is_archived', false)
       .not('status', 'is', null);
     if (error) throw error;
 
