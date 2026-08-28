@@ -250,16 +250,22 @@ const draftNarrative = async (req, res) => {
         if (err.code === 'AI_NOT_CONFIGURED') {
             return res.status(503).json({ error: err.message });
         }
+        if (err.code === 'AI_QUOTA_EXCEEDED') {
+            // Expected, not broken: the free-tier Gemini key has a small
+            // daily request cap, and this is what it looks like once
+            // that's used up for the day. 429 (not 500) since this is
+            // the caller having made too many requests, not a server
+            // fault -- and narrativeDrafter.js has already replaced
+            // Google's raw quota-error JSON with a short, human message.
+            return res.status(429).json({ error: err.message });
+        }
         console.error('AI narrative drafting failed:', err);
         // Surfaces the real underlying reason (which Gemini candidate
-        // failed and why -- bad/missing key, quota, retired model, etc.)
-        // instead of a generic message, matching the app-wide "show why
-        // it errors" requirement. This is an internal HR tool used only
-        // by trusted staff, not a public-facing app, so exposing the
-        // real error text here is a deliberate, safe tradeoff -- it
-        // doesn't leak anything more sensitive than "the AI provider
-        // said X", and it's what actually let this exact bug get found
-        // and fixed instead of staying a mystery 500.
+        // failed and why -- bad/missing key, retired model, etc.) instead
+        // of a generic message, matching the app-wide "show why it
+        // errors" requirement. This is an internal HR tool used only by
+        // trusted staff, not a public-facing app, so exposing the real
+        // error text here is a deliberate, safe tradeoff.
         res.status(500).json({
             error: `Could not draft the narrative: ${err.message || 'unknown error'}. You can type it directly instead.`,
         });
