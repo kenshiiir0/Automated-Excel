@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Icon from '../../Icon.jsx';
 import Modal from '../../Modal.jsx';
 
@@ -35,6 +35,8 @@ export default function DisciplinaryMemos() {
     const [bulletFacts, setBulletFacts] = useState('');
     const [incidentNarrative, setIncidentNarrative] = useState('');
     const [drafting, setDrafting] = useState(false);
+    const [draftingSeconds, setDraftingSeconds] = useState(0);
+    const draftingTimerRef = useRef(null);
     const [priorWarningNote, setPriorWarningNote] = useState('');
 
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -147,6 +149,16 @@ export default function DisciplinaryMemos() {
             return;
         }
         setDrafting(true);
+        setDraftingSeconds(0);
+        // AI drafting can legitimately take several seconds (it's a real
+        // network call to Gemini, with a fallback chain and one retry
+        // built in server-side) -- a ticking counter on the button makes
+        // clear the request is still alive rather than looking frozen,
+        // which is what a plain static "Drafting..." label can look like
+        // past the first couple of seconds.
+        draftingTimerRef.current = setInterval(() => {
+            setDraftingSeconds(s => s + 1);
+        }, 1000);
         try {
             const res = await fetch('/api/disciplinary-memos/draft-narrative', {
                 method: 'POST',
@@ -160,9 +172,20 @@ export default function DisciplinaryMemos() {
         } catch (err) {
             showToast('error', err.message);
         } finally {
+            clearInterval(draftingTimerRef.current);
+            draftingTimerRef.current = null;
             setDrafting(false);
         }
     };
+
+    // Stop the ticking counter if the component unmounts mid-draft (should
+    // be rare now that this page stays mounted via the keep-alive router,
+    // but stray intervals are worth guarding against regardless).
+    useEffect(() => {
+        return () => {
+            if (draftingTimerRef.current) clearInterval(draftingTimerRef.current);
+        };
+    }, []);
 
     const handleGeneratePreview = async () => {
         setGenerating(true);
@@ -407,7 +430,9 @@ export default function DisciplinaryMemos() {
                         />
                         <div style={{ marginTop: 8 }}>
                             <button type="button" className="btn-ghost" disabled={drafting || !ruleText.trim() || !bulletFacts.trim()} onClick={handleDraftNarrative}>
-                                {drafting ? 'Drafting…' : 'AI Draft'}
+                                {drafting
+                                    ? (draftingSeconds >= 2 ? `Drafting… (${draftingSeconds}s)` : 'Drafting…')
+                                    : 'AI Draft'}
                             </button>
                         </div>
                     </div>
