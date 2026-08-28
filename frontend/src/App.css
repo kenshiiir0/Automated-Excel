@@ -331,6 +331,139 @@ body {
   border-left: 4px solid #e53e3e;
 }
 
+/* -------------------------------------------------------------------
+   Due-Now Notification Banner (Dashboard) -- surfaces anything from the
+   Actionable HR Trackers section that's due today or already overdue,
+   right at the top of the dashboard so it can't be missed below the
+   fold. Distinct from the plain .error-message above: a warm gradient
+   card with its own icon badge, a live item count, and a horizontally
+   scrollable strip of individual chips (name + what's due), rather than
+   a single flat line of text.
+------------------------------------------------------------------- */
+.due-now-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fff0e6 100%);
+  border: 1px solid #f8c9c0;
+  border-left: 5px solid #e53935;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  box-shadow: 0 2px 10px rgba(229, 57, 53, 0.08);
+  animation: dueNowFadeIn 0.35s ease-out;
+}
+
+@keyframes dueNowFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.due-now-icon-badge {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e53935;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.15);
+  animation: dueNowPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes dueNowPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.15); }
+  50% { box-shadow: 0 0 0 7px rgba(229, 57, 53, 0.06); }
+}
+
+.due-now-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.due-now-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.due-now-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #7a1f1a;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.due-now-count-pill {
+  background: #e53935;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.due-now-chip-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.due-now-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #fbdedb;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.due-now-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.due-now-chip-dot.today {
+  background: #e53935;
+}
+
+.due-now-chip-dot.overdue {
+  background: #7a1f1a;
+}
+
+.due-now-chip-name {
+  font-weight: 700;
+  color: #2d3748;
+  white-space: nowrap;
+}
+
+.due-now-chip-reason {
+  color: #a0322c;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .due-now-banner {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .kpi-grid {

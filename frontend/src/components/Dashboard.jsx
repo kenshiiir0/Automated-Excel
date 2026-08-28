@@ -475,6 +475,40 @@ export default function Dashboard() {
   const totalPipelineCandidates = pipeline.reduce((sum, p) => sum + p.count, 0);
   const filledCandidates = pipeline.filter(p => (p.status || '').toLowerCase().includes('closed') || (p.status || '').toLowerCase().includes('filled')).reduce((sum, p) => sum + p.count, 0);
 
+  // Due-Now notification banner: pulls anything from the two Actionable
+  // HR Trackers tables (below) that's due TODAY (days_remaining === 0)
+  // into one combined, impossible-to-miss strip at the very top of the
+  // dashboard, instead of requiring a scroll all the way down to
+  // Section 7 to notice it. The backend (dashboardController.js) only
+  // ever returns days_remaining >= 0 for both trackers -- a record that
+  // falls out of the "within 30 days" window entirely just stops being
+  // returned rather than going negative -- so 0 is the actual floor, not
+  // just the common case; the <= 0 filter and `overdue` flag below are
+  // kept anyway as a harmless safeguard in case that ever changes.
+  // A regularization due today is often the more time-sensitive of the
+  // two (a compliance deadline), so it's listed first when both types
+  // are due on the same refresh.
+  const dueNowItems = [
+    ...((upcomingActions?.upForRegularization || [])
+      .filter(item => item.days_remaining <= 0)
+      .map(item => ({
+        key: `reg-${item.name}-${item.regularization_date}`,
+        name: item.name,
+        reason: item.days_remaining < 0 ? 'Regularization overdue' : 'Regularization due today',
+        overdue: item.days_remaining < 0,
+      }))),
+    ...((upcomingActions?.upcomingAnniversaries || [])
+      .filter(item => item.days_remaining <= 0)
+      .map(item => ({
+        key: `anniv-${item.name}-${item.upcoming_anniversary}`,
+        name: item.name,
+        reason: item.days_remaining < 0
+          ? 'Work anniversary passed'
+          : `${item.years_of_service} ${item.years_of_service === 1 ? 'yr' : 'yrs'} anniversary today`,
+        overdue: item.days_remaining < 0,
+      }))),
+  ];
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -492,6 +526,31 @@ export default function Dashboard() {
           <Icon name="refresh" size={14} /> Refresh Data
         </button>
       </header>
+
+      {dueNowItems.length > 0 && (
+        <div className="due-now-banner" role="status">
+          <span className="due-now-icon-badge">
+            <Icon name="alertTriangle" size={18} />
+          </span>
+          <div className="due-now-body">
+            <div className="due-now-header-row">
+              <p className="due-now-title">Action needed today</p>
+              <span className="due-now-count-pill">
+                {dueNowItems.length} {dueNowItems.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+            <div className="due-now-chip-row">
+              {dueNowItems.map(item => (
+                <div className="due-now-chip" key={item.key}>
+                  <span className={`due-now-chip-dot ${item.overdue ? 'overdue' : 'today'}`}></span>
+                  <span className="due-now-chip-name">{item.name}</span>
+                  <span className="due-now-chip-reason">— {item.reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <div className="error-message">{error}</div>}
 
