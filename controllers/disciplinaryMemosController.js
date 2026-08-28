@@ -251,7 +251,18 @@ const draftNarrative = async (req, res) => {
             return res.status(503).json({ error: err.message });
         }
         console.error('AI narrative drafting failed:', err);
-        res.status(500).json({ error: 'Could not draft the narrative. You can type it directly instead.' });
+        // Surfaces the real underlying reason (which Gemini candidate
+        // failed and why -- bad/missing key, quota, retired model, etc.)
+        // instead of a generic message, matching the app-wide "show why
+        // it errors" requirement. This is an internal HR tool used only
+        // by trusted staff, not a public-facing app, so exposing the
+        // real error text here is a deliberate, safe tradeoff -- it
+        // doesn't leak anything more sensitive than "the AI provider
+        // said X", and it's what actually let this exact bug get found
+        // and fixed instead of staying a mystery 500.
+        res.status(500).json({
+            error: `Could not draft the narrative: ${err.message || 'unknown error'}. You can type it directly instead.`,
+        });
     }
 };
 
