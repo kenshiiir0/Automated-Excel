@@ -3049,6 +3049,7 @@ button.profile-status-pill {
 }
 
 .rule-dropdown-row {
+  position: relative;
   border-bottom: 1px solid #f1f5f9;
 }
 
@@ -3073,32 +3074,49 @@ button.profile-status-pill {
   white-space: nowrap;
 }
 
-.rule-dropdown-view-btn {
+/* Purely a visual hint now ("hovering this row previews the full text")
+   -- the hover-to-reveal timer lives on the whole row (see
+   DisciplinaryMemos.jsx), not this icon specifically, so it has no
+   handlers or pointer cursor of its own. */
+.rule-dropdown-view-icon {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: #a0aec0;
-  border-radius: 5px;
-  /* Hover-to-reveal (~1s), not a click target -- see the onMouseEnter/
-     onMouseLeave timer in DisciplinaryMemos.jsx -- so this uses "default"
-     rather than "pointer" to avoid implying a click does something. */
-  cursor: default;
+  color: #cbd5e0;
 }
 
-.rule-dropdown-view-btn:hover {
-  background: #e2e8f0;
-  color: #1D9FDA;
-}
-
-.rule-dropdown-row-full {
-  padding: 4px 12px 10px 12px;
+/* Floating speech-bubble that pops up over the rows below instead of
+   pushing them down -- appears after ~1s of hovering anywhere on a rule
+   row, and disappears the moment the mouse leaves that row (including
+   moving down into the bubble itself, since it's a DOM child of the row
+   it belongs to, so that doesn't count as "leaving"). */
+.rule-tooltip-bubble {
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  right: 8px;
+  z-index: 20;
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: #1a202c;
+  color: #e2e8f0;
   font-size: 12.5px;
-  color: #4a5568;
-  background: #f8fafc;
   line-height: 1.5;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+  animation: ruleTooltipFadeIn 0.12s ease-out;
+}
+
+.rule-tooltip-bubble::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 20px;
+  width: 10px;
+  height: 10px;
+  background: #1a202c;
+  transform: rotate(45deg);
+}
+
+@keyframes ruleTooltipFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

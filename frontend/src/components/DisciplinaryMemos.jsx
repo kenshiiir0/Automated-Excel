@@ -480,7 +480,19 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                                     <div className="rule-dropdown-category">{group.categoryLabel}</div>
                                                 )}
                                                 {group.rules.map(r => (
-                                                    <div key={r.code} className="rule-dropdown-row">
+                                                    <div
+                                                        key={r.code}
+                                                        className="rule-dropdown-row"
+                                                        onMouseEnter={() => {
+                                                            if (r.category === 'OTHER') return;
+                                                            clearTimeout(ruleHoverTimerRef.current);
+                                                            ruleHoverTimerRef.current = setTimeout(() => setExpandedRuleCode(r.code), 1000);
+                                                        }}
+                                                        onMouseLeave={() => {
+                                                            clearTimeout(ruleHoverTimerRef.current);
+                                                            setExpandedRuleCode(prev => prev === r.code ? null : prev);
+                                                        }}
+                                                    >
                                                         <div
                                                             className="rule-dropdown-row-main"
                                                             onClick={() => handleRuleCodeChange(r.code)}
@@ -489,26 +501,11 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                                                 {r.category === 'OTHER' ? r.text : `${r.code} — ${truncateRuleLabel(r.text, 56)}`}
                                                             </span>
                                                             {r.category !== 'OTHER' && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="rule-dropdown-view-btn"
-                                                                    title="Hover for about a second to view the full rule text"
-                                                                    onMouseEnter={() => {
-                                                                        clearTimeout(ruleHoverTimerRef.current);
-                                                                        ruleHoverTimerRef.current = setTimeout(() => setExpandedRuleCode(r.code), 1000);
-                                                                    }}
-                                                                    onMouseLeave={() => {
-                                                                        clearTimeout(ruleHoverTimerRef.current);
-                                                                        setExpandedRuleCode(prev => prev === r.code ? null : prev);
-                                                                    }}
-                                                                    onClick={e => e.stopPropagation()}
-                                                                >
-                                                                    <Icon name="eye" size={13} />
-                                                                </button>
+                                                                <Icon name="eye" size={13} className="rule-dropdown-view-icon" />
                                                             )}
                                                         </div>
                                                         {expandedRuleCode === r.code && (
-                                                            <div className="rule-dropdown-row-full">{r.text}</div>
+                                                            <div className="rule-tooltip-bubble">{r.text}</div>
                                                         )}
                                                     </div>
                                                 ))}
