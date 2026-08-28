@@ -137,7 +137,7 @@ const createUser = async (req, res) => {
         }
 
         const tempPassword = generateTempPassword();
-        const passwordHash = await bcrypt.hash(tempPassword, 10);
+        const passwordHash = await bcrypt.hash(tempPassword, 12);
 
         const { data, error } = await supabaseAdmin
             .from('users')

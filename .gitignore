@@ -24,3 +24,4 @@ import_data/
 frontend/dist.stale_*/
 frontend/dist_verify*/
 frontend/vite.config.js.timestamp-*.mjs
+check_counts_tmp.mjs

@@ -42,7 +42,7 @@ const requestOtp = async (req, res) => {
 
         const otpCode = generateOtp();
         const otpExpiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString();
-        const passwordHash = await bcrypt.hash(password, 10);
+        const passwordHash = await bcrypt.hash(password, 12);
 
         // Upsert on email: lets someone re-request a code (e.g. it expired)
         // without erroring on a duplicate-email conflict.

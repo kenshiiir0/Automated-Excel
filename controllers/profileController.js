@@ -106,7 +106,7 @@ const changePassword = async (req, res) => {
             return res.status(401).json({ error: 'Current password is incorrect.' });
         }
 
-        const newHash = await bcrypt.hash(newPassword, 10);
+        const newHash = await bcrypt.hash(newPassword, 12);
         const { error: updateError } = await supabaseAdmin
             .from('users')
             .update({ password_hash: newHash })
