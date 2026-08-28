@@ -3186,12 +3186,6 @@ button.profile-status-pill {
 }
 
 .custom-select-panel {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  margin-top: 4px;
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -3199,6 +3193,18 @@ button.profile-status-pill {
   overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   animation: ruleTooltipFadeIn 0.12s ease-out;
+}
+
+/* CustomSelect's panel is rendered through a portal into document.body
+   (see CustomSelect.jsx) so it can't be clipped by an ancestor with
+   overflow: hidden -- e.g. the rounded-corner .table-card wrapping every
+   data table, which was cutting the Role dropdown in Manage Users off
+   after two rows. Positioned via `position: fixed` with `top`/`left`/
+   `width` set inline from the control's live bounding rect, kept in
+   sync on scroll/resize while open. */
+.custom-select-panel-portal {
+  position: fixed;
+  z-index: 1000;
 }
 
 .custom-select-row {

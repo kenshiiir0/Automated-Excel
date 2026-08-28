@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from './Icon.jsx';
 
 // Shared custom-styled dropdown used across the app in place of a native
@@ -20,21 +21,55 @@ import Icon from './Icon.jsx';
 // "please fill this field" bubble anchored to the visible control) --
 // this exists purely so swapping a required native <select> for this
 // component doesn't silently drop that validation.
+//
+// The dropdown panel itself is rendered through a portal into
+// document.body, positioned from the control's live bounding rect,
+// rather than as a normal DOM child of the control. If it were a normal
+// child, any ancestor with `overflow: hidden` -- e.g. the rounded-corner
+// .table-card wrapping every data table in this app -- would visually
+// clip it the moment it extended past that ancestor's box, which is
+// exactly what happened with the Role dropdown in Manage Users: opening
+// it near the bottom of a table cell cut the panel off after 2 rows
+// instead of showing all of them. Portaling to <body> means the panel's
+// only positioning constraint is the viewport, not whatever scrollable/
+// clipped container happens to contain the control.
 export default function CustomSelect({ value, onChange, options, className = '', placeholder, disabled = false, required = false, style }) {
     const [open, setOpen] = useState(false);
+    const [panelRect, setPanelRect] = useState(null);
     const wrapRef = useRef(null);
     const hiddenSelectRef = useRef(null);
+
+    const computeRect = useCallback(() => {
+        if (!wrapRef.current) return;
+        const r = wrapRef.current.getBoundingClientRect();
+        setPanelRect({ top: r.bottom + 4, left: r.left, width: r.width });
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!open) return;
+        computeRect();
+    }, [open, computeRect]);
 
     useEffect(() => {
         if (!open) return;
         const handleClickOutside = (e) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+            if (wrapRef.current && !wrapRef.current.contains(e.target) && !e.target.closest?.('.custom-select-panel')) {
                 setOpen(false);
             }
         };
+        // Keep the floating panel glued to the control if the page scrolls
+        // or the window resizes while it's open, since it's no longer a
+        // normal in-flow child that would move with the control on its own.
+        const handleReposition = () => computeRect();
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [open]);
+        window.addEventListener('scroll', handleReposition, true);
+        window.addEventListener('resize', handleReposition);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleReposition, true);
+            window.removeEventListener('resize', handleReposition);
+        };
+    }, [open, computeRect]);
 
     const normalized = options.map(o => (typeof o === 'object' && o !== null) ? o : { value: o, label: String(o) });
     const selected = normalized.find(o => String(o.value) === String(value));
@@ -55,8 +90,12 @@ export default function CustomSelect({ value, onChange, options, className = '',
                 </span>
                 <Icon name="chevronDown" size={14} className={`custom-select-arrow ${open ? 'custom-select-arrow-open' : ''}`} />
             </div>
-            {open && !disabled && (
-                <div className="custom-select-panel" onMouseDown={e => e.preventDefault()}>
+            {open && !disabled && panelRect && createPortal(
+                <div
+                    className="custom-select-panel custom-select-panel-portal"
+                    style={{ top: panelRect.top, left: panelRect.left, width: panelRect.width }}
+                    onMouseDown={e => e.preventDefault()}
+                >
                     {normalized.map(o => (
                         <div
                             key={o.value}
@@ -66,7 +105,8 @@ export default function CustomSelect({ value, onChange, options, className = '',
                             {o.label}
                         </div>
                     ))}
-                </div>
+                </div>,
+                document.body
             )}
             {required && (
                 <select

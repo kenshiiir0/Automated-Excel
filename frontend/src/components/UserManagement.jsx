@@ -246,25 +246,6 @@ export default function UserManagement({ visible } = {}) {
         }
     };
 
-    const handleToggleActive = async (id, currentlyActive) => {
-        setSavingId(id);
-        try {
-            const res = await fetch(`/api/users/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ is_active: !currentlyActive }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Could not update status.');
-            setUsers(prev => prev.map(u => (u.id === id ? data.user : u)));
-            showToast('success', currentlyActive ? 'Account deactivated.' : 'Account activated.');
-        } catch (err) {
-            showToast('error', err.message);
-        } finally {
-            setSavingId(null);
-        }
-    };
-
     const [confirmArchiveId, setConfirmArchiveId] = useState(null);
 
     // "Delete" in this system always archives -- nothing is ever hard-
@@ -372,22 +353,9 @@ export default function UserManagement({ visible } = {}) {
                                         )}
                                     </td>
                                     <td>
-                                        {canEditThis ? (
-                                            <button
-                                                type="button"
-                                                className={`profile-status-pill ${u.is_active ? 'ok' : 'warn'}`}
-                                                style={{ border: 'none', cursor: savingId === u.id ? 'default' : 'pointer' }}
-                                                disabled={savingId === u.id}
-                                                onClick={() => handleToggleActive(u.id, u.is_active)}
-                                                title="Click to toggle"
-                                            >
-                                                {u.is_active ? 'Active' : 'Inactive'}
-                                            </button>
-                                        ) : (
-                                            <span className={`profile-status-pill ${u.is_active ? 'ok' : 'warn'}`}>
-                                                {u.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        )}
+                                        <span className={`profile-status-pill ${u.is_active ? 'ok' : 'warn'}`}>
+                                            {u.is_active ? 'Active' : 'Inactive'}
+                                        </span>
                                     </td>
                                     <td><OnlineIndicator lastSeenAt={u.last_seen_at} /></td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(u.created_at)}</td>
