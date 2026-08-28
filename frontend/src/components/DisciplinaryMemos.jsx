@@ -245,41 +245,6 @@ export default function DisciplinaryMemos({ visible } = {}) {
         }
     };
 
-    // A separate, explicit Download button (distinct from Generate &
-    // Preview's new-tab behavior) -- always saves a file to disk rather
-    // than relying on the browser's own "save from a preview tab" action,
-    // which isn't obvious to everyone. Available once a memo can be
-    // generated, independent of whether Send has been used yet.
-    const handleDirectDownload = async () => {
-        setGenerating(true);
-        try {
-            const res = await fetch('/api/disciplinary-memos/preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(buildPayload()),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || 'Could not generate the document.');
-            }
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const config = memoTypes.find(t => t.key === memoType);
-            const filename = `${(config?.label || memoType).replace(/\s+/g, '_')}_${(selectedEmployee.first_name || '')}_${(selectedEmployee.last_name || '')}.docx`.replace(/\s+/g, '_');
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-        } catch (err) {
-            showToast('error', err.message);
-        } finally {
-            setGenerating(false);
-        }
-    };
-
     // Per-row download in Recently Issued -- re-generates that exact
     // memo from its stored fields (the backend never stores the binary
     // file, only the fields used to build it) so a past memo can be
@@ -513,9 +478,6 @@ export default function DisciplinaryMemos({ visible } = {}) {
                     )}
                     <button type="button" className="btn-ghost" disabled={!canGenerate || generating} onClick={handleGeneratePreview} title="Opens the document in a new tab for review">
                         {generating ? 'Generating…' : 'Generate & Preview'}
-                    </button>
-                    <button type="button" className="btn-ghost" disabled={!canGenerate || generating} onClick={handleDirectDownload} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Saves the document to your computer">
-                        <Icon name="download" size={14} /> Download
                     </button>
                     <button type="button" className="btn-primary" disabled={!previewUrl || sending} onClick={() => setShowSendOptions(true)} title={!previewUrl ? 'Generate and review the document first' : undefined}>
                         {sending ? 'Sending…' : 'Send…'}
