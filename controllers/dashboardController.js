@@ -544,11 +544,16 @@ export const getMonthlyTrend = async (req, res) => {
     if (error) throw error;
 
     const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+    // Always show the full Jan-Dec year, not just up through the current
+    // month -- a month that hasn't happened yet simply has 0 hires/0
+    // separations (there's nothing to filter into it), so this is safe
+    // and gives a consistent full-year view all year round rather than
+    // the chart's x-axis silently growing one bar at a time as the year
+    // progresses.
     const result = [];
-    for (let m = 0; m <= currentMonth; m++) {
+    for (let m = 0; m <= 11; m++) {
       const hires = data.filter(e => {
         if (!e.hire_date) return false;
         const d = new Date(e.hire_date);
