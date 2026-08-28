@@ -286,37 +286,41 @@ export default function SendFiles({ visible } = {}) {
                 )}
             </div>
 
-            <div className="table-card">
-                <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Recently Sent</h3>
-                {history.length === 0 ? (
-                    <p style={{ color: '#a0aec0', fontSize: 13 }}>No files have been sent yet.</p>
-                ) : (
+            <div className="section-title">Recently Sent</div>
+            {history.length === 0 ? (
+                <div className="table-card" style={{ padding: '32px 24px', textAlign: 'center', color: '#a0aec0', fontStyle: 'italic' }}>
+                    No files sent yet.
+                </div>
+            ) : (
+                <div className="table-card">
                     <table className="data-table">
                         <thead>
                             <tr>
                                 <th>Employee</th>
                                 <th>File</th>
-                                <th>Sent To</th>
-                                <th>Size</th>
-                                <th>Sent At</th>
                                 <th>Status</th>
+                                <th>Sent</th>
+                                <th>To</th>
                             </tr>
                         </thead>
                         <tbody>
                             {history.map(row => (
-                                <tr key={row.id}>
-                                    <td>{row.employees ? `${row.employees.first_name} ${row.employees.last_name}` : '—'}</td>
-                                    <td>{row.file_name}</td>
-                                    <td>{row.sent_to_email}</td>
-                                    <td>{fmtBytes(row.file_size_bytes)}</td>
-                                    <td>{fmtDateTime(row.sent_at)}</td>
-                                    <td><span className="memo-sent-status-pill"><Icon name="check" size={11} /> Sent</span></td>
+                                <tr key={row.id} className="table-row">
+                                    <td style={{ fontWeight: 600 }}>{row.employees ? `${row.employees.first_name} ${row.employees.last_name}` : '—'}</td>
+                                    <td style={{ fontSize: 12, color: '#718096' }}>{row.file_name}{row.file_size_bytes ? ` (${fmtBytes(row.file_size_bytes)})` : ''}</td>
+                                    <td>
+                                        <span className="memo-sent-status-pill">
+                                            <Icon name="check" size={11} /> Sent
+                                        </span>
+                                    </td>
+                                    <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDateTime(row.sent_at)}</td>
+                                    <td style={{ fontSize: 12, color: '#a0aec0' }}>{row.sent_to_email}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                )}
-            </div>
+                </div>
+            )}
 
             {showSendOptions && selectedEmployee && (
                 <SendFileOptionsModal
