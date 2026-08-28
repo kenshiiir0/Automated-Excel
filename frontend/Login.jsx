@@ -126,6 +126,7 @@ function SignupForm({ onBack, onOtpSent }) {
     const [email, setEmail] = useState('');
     const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
@@ -133,6 +134,10 @@ function SignupForm({ onBack, onOtpSent }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
         setSubmitting(true);
         try {
             await requestSignupOtp(email, fullName, password);
@@ -204,10 +209,26 @@ function SignupForm({ onBack, onOtpSent }) {
                     </div>
                     <span className="login-hint">At least 8 characters.</span>
                 </div>
+                <div className="emp-form-group">
+                    <label className="emp-form-label">Confirm Password</label>
+                    <div className="login-password-wrap">
+                        <input
+                            className="emp-form-input"
+                            type={showPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            minLength={8}
+                            required
+                        />
+                    </div>
+                    {confirmPassword && password !== confirmPassword && (
+                        <span className="login-hint" style={{ color: '#e53e3e' }}>Passwords do not match.</span>
+                    )}
+                </div>
 
                 {error && <div className="login-error">{error}</div>}
 
-                <button type="submit" className="btn-primary login-submit-btn" disabled={submitting}>
+                <button type="submit" className="btn-primary login-submit-btn" disabled={submitting || (confirmPassword.length > 0 && password !== confirmPassword)}>
                     {submitting ? <span className="btn-spinner" /> : null}
                     {submitting ? 'Sending code…' : 'Send Verification Code'}
                 </button>
