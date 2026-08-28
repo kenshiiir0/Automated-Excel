@@ -475,39 +475,36 @@ export default function Dashboard() {
   const totalPipelineCandidates = pipeline.reduce((sum, p) => sum + p.count, 0);
   const filledCandidates = pipeline.filter(p => (p.status || '').toLowerCase().includes('closed') || (p.status || '').toLowerCase().includes('filled')).reduce((sum, p) => sum + p.count, 0);
 
-  // Due-Now notification banner: pulls anything from the two Actionable
-  // HR Trackers tables (below) that's due TODAY (days_remaining === 0)
-  // into one combined, impossible-to-miss strip at the very top of the
-  // dashboard, instead of requiring a scroll all the way down to
-  // Section 7 to notice it. The backend (dashboardController.js) only
-  // ever returns days_remaining >= 0 for both trackers -- a record that
-  // falls out of the "within 30 days" window entirely just stops being
-  // returned rather than going negative -- so 0 is the actual floor, not
-  // just the common case; the <= 0 filter and `overdue` flag below are
-  // kept anyway as a harmless safeguard in case that ever changes.
-  // A regularization due today is often the more time-sensitive of the
-  // two (a compliance deadline), so it's listed first when both types
-  // are due on the same refresh.
-  const dueNowItems = [
-    ...((upcomingActions?.upForRegularization || [])
-      .filter(item => item.days_remaining <= 0)
-      .map(item => ({
-        key: `reg-${item.name}-${item.regularization_date}`,
-        name: item.name,
-        reason: item.days_remaining < 0 ? 'Regularization overdue' : 'Regularization due today',
-        overdue: item.days_remaining < 0,
-      }))),
-    ...((upcomingActions?.upcomingAnniversaries || [])
-      .filter(item => item.days_remaining <= 0)
-      .map(item => ({
-        key: `anniv-${item.name}-${item.upcoming_anniversary}`,
-        name: item.name,
-        reason: item.days_remaining < 0
-          ? 'Work anniversary passed'
-          : `${item.years_of_service} ${item.years_of_service === 1 ? 'yr' : 'yrs'} anniversary today`,
-        overdue: item.days_remaining < 0,
-      }))),
-  ];
+  // Two separate top-of-dashboard notification banners, pulling from the
+  // two Actionable HR Trackers tables (below) for anything due TODAY
+  // (days_remaining === 0), so neither has to wait for a scroll down to
+  // Section 7 to be noticed. Deliberately NOT one combined banner: a
+  // regularization deadline is a compliance action someone needs to act
+  // on (genuinely a "warning"), while a work anniversary is worth
+  // celebrating, not alarming someone about -- forcing both into the same
+  // red/alert treatment sent the wrong signal on the happy one. The
+  // backend (dashboardController.js) only ever returns days_remaining >=
+  // 0 for both trackers -- a record that falls out of the "within 30
+  // days" window entirely just stops being returned rather than going
+  // negative -- so 0 is the actual floor, not just the common case; the
+  // <= 0 filter and `overdue` flag below are kept anyway as a harmless
+  // safeguard in case that ever changes.
+  const dueNowActionItems = (upcomingActions?.upForRegularization || [])
+    .filter(item => item.days_remaining <= 0)
+    .map(item => ({
+      key: `reg-${item.name}-${item.regularization_date}`,
+      name: item.name,
+      reason: item.days_remaining < 0 ? 'Regularization overdue' : 'Regularization due today',
+      overdue: item.days_remaining < 0,
+    }));
+
+  const dueNowCelebrationItems = (upcomingActions?.upcomingAnniversaries || [])
+    .filter(item => item.days_remaining <= 0)
+    .map(item => ({
+      key: `anniv-${item.name}-${item.upcoming_anniversary}`,
+      name: item.name,
+      reason: `${item.years_of_service} ${item.years_of_service === 1 ? 'yr' : 'yrs'} with GetMeds today!`,
+    }));
 
   return (
     <div className="dashboard-container">
@@ -527,24 +524,49 @@ export default function Dashboard() {
         </button>
       </header>
 
-      {dueNowItems.length > 0 && (
-        <div className="due-now-banner" role="status">
-          <span className="due-now-icon-badge">
+      {dueNowActionItems.length > 0 && (
+        <div className="due-now-banner due-now-banner-alert" role="status">
+          <span className="due-now-icon-badge alert">
             <Icon name="alertTriangle" size={18} />
           </span>
           <div className="due-now-body">
             <div className="due-now-header-row">
-              <p className="due-now-title">Action needed today</p>
-              <span className="due-now-count-pill">
-                {dueNowItems.length} {dueNowItems.length === 1 ? 'item' : 'items'}
+              <p className="due-now-title alert">Action needed today</p>
+              <span className="due-now-count-pill alert">
+                {dueNowActionItems.length} {dueNowActionItems.length === 1 ? 'item' : 'items'}
               </span>
             </div>
             <div className="due-now-chip-row">
-              {dueNowItems.map(item => (
-                <div className="due-now-chip" key={item.key}>
+              {dueNowActionItems.map(item => (
+                <div className="due-now-chip alert" key={item.key}>
                   <span className={`due-now-chip-dot ${item.overdue ? 'overdue' : 'today'}`}></span>
                   <span className="due-now-chip-name">{item.name}</span>
-                  <span className="due-now-chip-reason">— {item.reason}</span>
+                  <span className="due-now-chip-reason alert">— {item.reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dueNowCelebrationItems.length > 0 && (
+        <div className="due-now-banner due-now-banner-celebrate" role="status">
+          <span className="due-now-icon-badge celebrate">
+            <Icon name="cake" size={18} />
+          </span>
+          <div className="due-now-body">
+            <div className="due-now-header-row">
+              <p className="due-now-title celebrate">Celebrating today</p>
+              <span className="due-now-count-pill celebrate">
+                {dueNowCelebrationItems.length} {dueNowCelebrationItems.length === 1 ? 'anniversary' : 'anniversaries'}
+              </span>
+            </div>
+            <div className="due-now-chip-row">
+              {dueNowCelebrationItems.map(item => (
+                <div className="due-now-chip celebrate" key={item.key}>
+                  <span className="due-now-chip-dot celebrate">🎉</span>
+                  <span className="due-now-chip-name">{item.name}</span>
+                  <span className="due-now-chip-reason celebrate">— {item.reason}</span>
                 </div>
               ))}
             </div>

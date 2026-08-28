@@ -332,25 +332,24 @@ body {
 }
 
 /* -------------------------------------------------------------------
-   Due-Now Notification Banner (Dashboard) -- surfaces anything from the
-   Actionable HR Trackers section that's due today or already overdue,
-   right at the top of the dashboard so it can't be missed below the
-   fold. Distinct from the plain .error-message above: a warm gradient
-   card with its own icon badge, a live item count, and a horizontally
-   scrollable strip of individual chips (name + what's due), rather than
-   a single flat line of text.
+   Due-Now Notification Banners (Dashboard) -- surface anything from the
+   Actionable HR Trackers section that's happening today, right at the
+   top of the dashboard so it can't be missed below the fold. Shared
+   layout (.due-now-banner and its children) stays color-neutral; the
+   actual palette comes entirely from the .alert / .celebrate modifiers
+   below, since a regularization deadline (something to act on) and a
+   work anniversary (something to celebrate) need genuinely different
+   tones -- the first version of this banner forced both into the same
+   red/alert treatment, which read as a warning on a happy occasion.
 ------------------------------------------------------------------- */
 .due-now-banner {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  background: linear-gradient(135deg, #fff5f5 0%, #fff0e6 100%);
-  border: 1px solid #f8c9c0;
-  border-left: 5px solid #e53935;
+  border: 1px solid transparent;
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 22px;
-  box-shadow: 0 2px 10px rgba(229, 57, 53, 0.08);
   animation: dueNowFadeIn 0.35s ease-out;
 }
 
@@ -364,18 +363,10 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: #e53935;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.15);
-  animation: dueNowPulse 2.2s ease-in-out infinite;
-}
-
-@keyframes dueNowPulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.15); }
-  50% { box-shadow: 0 0 0 7px rgba(229, 57, 53, 0.06); }
 }
 
 .due-now-body {
@@ -394,14 +385,12 @@ body {
 .due-now-title {
   font-size: 13.5px;
   font-weight: 800;
-  color: #7a1f1a;
   letter-spacing: 0.2px;
   text-transform: uppercase;
   margin: 0;
 }
 
 .due-now-count-pill {
-  background: #e53935;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -424,7 +413,7 @@ body {
   align-items: center;
   gap: 8px;
   background: #fff;
-  border: 1px solid #fbdedb;
+  border: 1px solid transparent;
   border-radius: 8px;
   padding: 7px 12px;
   font-size: 12.5px;
@@ -438,6 +427,50 @@ body {
   flex-shrink: 0;
 }
 
+.due-now-chip-name {
+  font-weight: 700;
+  color: #2d3748;
+  white-space: nowrap;
+}
+
+.due-now-chip-reason {
+  white-space: nowrap;
+}
+
+/* ---- Alert variant: regularization deadlines -- a real, time-
+   sensitive compliance action someone on HR needs to actually do
+   something about today. Keeps the original red/urgent treatment,
+   including the attention-grabbing pulse on the icon badge. ---- */
+.due-now-banner-alert {
+  background: linear-gradient(135deg, #fff5f5 0%, #fff0e6 100%);
+  border-color: #f8c9c0;
+  border-left: 5px solid #e53935;
+  box-shadow: 0 2px 10px rgba(229, 57, 53, 0.08);
+}
+
+.due-now-icon-badge.alert {
+  background: #e53935;
+  box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.15);
+  animation: dueNowPulseAlert 2.2s ease-in-out infinite;
+}
+
+@keyframes dueNowPulseAlert {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.15); }
+  50% { box-shadow: 0 0 0 7px rgba(229, 57, 53, 0.06); }
+}
+
+.due-now-title.alert {
+  color: #7a1f1a;
+}
+
+.due-now-count-pill.alert {
+  background: #e53935;
+}
+
+.due-now-chip.alert {
+  border-color: #fbdedb;
+}
+
 .due-now-chip-dot.today {
   background: #e53935;
 }
@@ -446,15 +479,55 @@ body {
   background: #7a1f1a;
 }
 
-.due-now-chip-name {
-  font-weight: 700;
-  color: #2d3748;
-  white-space: nowrap;
+.due-now-chip-reason.alert {
+  color: #a0322c;
 }
 
-.due-now-chip-reason {
-  color: #a0322c;
-  white-space: nowrap;
+/* ---- Celebrate variant: work anniversaries -- nothing to "act" on,
+   purely a good-news moment worth calling out warmly. Gold/amber
+   palette instead of red, a cake icon instead of a warning triangle,
+   a gentle shimmer instead of an urgent pulse, and a 🎉 in place of the
+   plain status dot used on the alert variant. ---- */
+.due-now-banner-celebrate {
+  background: linear-gradient(135deg, #fffbeb 0%, #fff4d6 100%);
+  border-color: #f5deA0;
+  border-left: 5px solid #d4a017;
+  box-shadow: 0 2px 10px rgba(212, 160, 23, 0.1);
+}
+
+.due-now-icon-badge.celebrate {
+  background: linear-gradient(135deg, #f0b429 0%, #d4a017 100%);
+  box-shadow: 0 0 0 4px rgba(212, 160, 23, 0.16);
+  animation: dueNowShimmer 3s ease-in-out infinite;
+}
+
+@keyframes dueNowShimmer {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(212, 160, 23, 0.16); transform: scale(1); }
+  50% { box-shadow: 0 0 0 8px rgba(212, 160, 23, 0.08); transform: scale(1.04); }
+}
+
+.due-now-title.celebrate {
+  color: #8a6207;
+}
+
+.due-now-count-pill.celebrate {
+  background: #d4a017;
+}
+
+.due-now-chip.celebrate {
+  border-color: #f5e4b0;
+}
+
+.due-now-chip-dot.celebrate {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.due-now-chip-reason.celebrate {
+  color: #8a6207;
 }
 
 @media (max-width: 600px) {
