@@ -1941,6 +1941,74 @@ button.profile-status-pill {
   font-style: italic;
 }
 
+/* -------------------------------------------------------------------
+   Send confirmation (Disciplinary Memos) -- a persistent green banner
+   that stays visible after a successful send, plus a "Sent" status pill
+   in the Recently Issued table. Both exist so a successful send is
+   never in doubt: the earlier toast alone disappears after a few
+   seconds, which made it easy to second-guess whether something
+   actually went through, especially while diagnosing send failures.
+------------------------------------------------------------------- */
+.sent-confirmation-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf0cc;
+  border-left: 4px solid #2f855a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  animation: dueNowFadeIn 0.3s ease-out;
+}
+
+.sent-confirmation-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #2f855a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sent-confirmation-text {
+  flex: 1;
+  font-size: 13px;
+  color: #276749;
+}
+
+.sent-confirmation-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #276749;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.sent-confirmation-dismiss:hover {
+  background: rgba(47, 133, 90, 0.12);
+}
+
+.memo-sent-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e6f4ea;
+  color: #137333;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
 .days-countdown-badge {
   display: inline-block;
   padding: 3px 9px;

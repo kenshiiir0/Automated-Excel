@@ -43,6 +43,13 @@ export default function DisciplinaryMemos({ visible } = {}) {
     const [generating, setGenerating] = useState(false);
     const [sending, setSending] = useState(false);
     const [showSendOptions, setShowSendOptions] = useState(false);
+    // Persistent (not auto-dismissing like the toast) confirmation banner
+    // for the most recent successful send -- shows exactly who it went to
+    // and when, and stays on screen until the next send replaces it or
+    // the person dismisses it. The toast alone was easy to miss/doubt
+    // since it disappears after a few seconds; this gives something
+    // concrete to look back at and confirm "yes, that one actually sent."
+    const [lastSentConfirmation, setLastSentConfirmation] = useState(null);
 
     const showToast = useCallback((type, msg) => {
         setToast({ type, msg });
@@ -319,6 +326,11 @@ export default function DisciplinaryMemos({ visible } = {}) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not send the memo.');
             showToast('success', `Sent to ${data.toEmail}.`);
+            setLastSentConfirmation({
+                employeeName: selectedEmployee ? `${selectedEmployee.first_name} ${selectedEmployee.last_name}` : '',
+                toEmail: data.toEmail,
+                sentAt: data.memo?.sent_at || new Date().toISOString(),
+            });
             setHistory(prev => [data.memo, ...prev]);
             setShowSendOptions(false);
             // Reset the form for the next memo.
@@ -494,6 +506,25 @@ export default function DisciplinaryMemos({ visible } = {}) {
                         Preview opened in a new tab. Review it, then click Send when ready.
                     </p>
                 )}
+                {lastSentConfirmation && (
+                    <div className="sent-confirmation-banner">
+                        <span className="sent-confirmation-icon">
+                            <Icon name="check" size={15} />
+                        </span>
+                        <div className="sent-confirmation-text">
+                            <strong>Sent successfully.</strong> {lastSentConfirmation.employeeName}'s memo was emailed to {lastSentConfirmation.toEmail} on {fmtDate(lastSentConfirmation.sentAt)}.
+                        </div>
+                        <button
+                            type="button"
+                            className="sent-confirmation-dismiss"
+                            onClick={() => setLastSentConfirmation(null)}
+                            aria-label="Dismiss"
+                            title="Dismiss"
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
             </div>
 
             {showSendOptions && selectedEmployee && (
@@ -517,6 +548,7 @@ export default function DisciplinaryMemos({ visible } = {}) {
                             <tr>
                                 <th>Employee</th>
                                 <th>Type</th>
+                                <th>Status</th>
                                 <th>Sent</th>
                                 <th>To</th>
                                 <th></th>
@@ -527,6 +559,11 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                 <tr key={m.id} className="table-row">
                                     <td style={{ fontWeight: 600 }}>{m.employees ? `${m.employees.first_name} ${m.employees.last_name}` : '—'}</td>
                                     <td style={{ fontSize: 12, color: '#718096' }}>{(memoTypes.find(t => t.key === m.memo_type) || {}).label || m.memo_type}</td>
+                                    <td>
+                                        <span className="memo-sent-status-pill">
+                                            <Icon name="check" size={11} /> Sent
+                                        </span>
+                                    </td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{fmtDate(m.sent_at)}</td>
                                     <td style={{ fontSize: 12, color: '#a0aec0' }}>{m.sent_to_email}</td>
                                     <td>
