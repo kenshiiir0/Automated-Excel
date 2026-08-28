@@ -3074,18 +3074,25 @@ button.profile-status-pill {
   white-space: nowrap;
 }
 
-/* Purely a visual hint now ("hovering this row previews the full text")
-   -- the hover-to-reveal timer lives on the whole row (see
-   DisciplinaryMemos.jsx), not this icon specifically, so it has no
-   handlers or pointer cursor of its own. */
-.rule-dropdown-view-icon {
-  flex-shrink: 0;
-  color: #cbd5e0;
+/* The selected Company Rule value is directly clickable to change it --
+   no separate "Change" button, matching what was asked for: click the
+   value itself, not a button beside it. */
+.rule-selected-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.rule-selected-value:hover {
+  border-color: #1D9FDA;
+  background: #f8fdff;
 }
 
 /* Floating speech-bubble that pops up over the rows below instead of
-   pushing them down -- appears after ~1s of hovering anywhere on a rule
-   row, and disappears the moment the mouse leaves that row (including
+   pushing them down -- appears after ~300ms of hovering anywhere on a
+   rule row, and disappears the moment the mouse leaves that row (including
    moving down into the bubble itself, since it's a DOM child of the row
    it belongs to, so that doesn't count as "leaving"). */
 .rule-tooltip-bubble {

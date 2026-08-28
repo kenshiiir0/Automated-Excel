@@ -46,8 +46,8 @@ export default function DisciplinaryMemos({ visible } = {}) {
     const [ruleDropdownOpen, setRuleDropdownOpen] = useState(false);
     const [expandedRuleCode, setExpandedRuleCode] = useState(null);
     // Only one hover-preview can be pending/open at a time, so a single
-    // ref is enough -- starts on mouseenter, fires after 1s of continuous
-    // hover, and is cancelled if the mouse leaves before then.
+    // ref is enough -- starts on mouseenter, fires after 300ms of
+    // continuous hover, and is cancelled if the mouse leaves before then.
     const ruleHoverTimerRef = useRef(null);
     const [incidentDate, setIncidentDate] = useState('');
     const [incidentTime, setIncidentTime] = useState('Working hours');
@@ -444,18 +444,15 @@ export default function DisciplinaryMemos({ visible } = {}) {
                     <div className="emp-form-group" style={{ gridColumn: '1 / -1', position: 'relative' }}>
                         <label className="emp-form-label">Company Rule Violated</label>
                         {selectedRule ? (
-                            <div className="emp-form-input" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <div
+                                className="emp-form-input rule-selected-value"
+                                title="Click to change"
+                                onClick={() => { setRuleCode(''); setRuleText(''); setRuleSearch(''); setRuleDropdownOpen(true); }}
+                            >
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {selectedRule.code === 'OTHER' ? selectedRule.text : `${selectedRule.code} — ${truncateRuleLabel(selectedRule.text)}`}
                                 </span>
-                                <button
-                                    type="button"
-                                    className="btn-ghost"
-                                    style={{ padding: '2px 8px', fontSize: 12, flexShrink: 0 }}
-                                    onClick={() => { setRuleCode(''); setRuleText(''); setRuleSearch(''); setRuleDropdownOpen(true); }}
-                                >
-                                    Change
-                                </button>
+                                <Icon name="edit" size={13} style={{ flexShrink: 0, color: '#a0aec0' }} />
                             </div>
                         ) : (
                             <>
@@ -486,7 +483,7 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                                         onMouseEnter={() => {
                                                             if (r.category === 'OTHER') return;
                                                             clearTimeout(ruleHoverTimerRef.current);
-                                                            ruleHoverTimerRef.current = setTimeout(() => setExpandedRuleCode(r.code), 1000);
+                                                            ruleHoverTimerRef.current = setTimeout(() => setExpandedRuleCode(r.code), 300);
                                                         }}
                                                         onMouseLeave={() => {
                                                             clearTimeout(ruleHoverTimerRef.current);
@@ -500,9 +497,6 @@ export default function DisciplinaryMemos({ visible } = {}) {
                                                             <span className="rule-dropdown-row-label">
                                                                 {r.category === 'OTHER' ? r.text : `${r.code} — ${truncateRuleLabel(r.text, 56)}`}
                                                             </span>
-                                                            {r.category !== 'OTHER' && (
-                                                                <Icon name="eye" size={13} className="rule-dropdown-view-icon" />
-                                                            )}
                                                         </div>
                                                         {expandedRuleCode === r.code && (
                                                             <div className="rule-tooltip-bubble">{r.text}</div>
