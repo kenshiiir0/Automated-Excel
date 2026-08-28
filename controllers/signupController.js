@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../lib/supabase.js';
-import { sendOtpEmail } from '../lib/resend.js';
+import { sendOtpEmail } from '../lib/mailer.js';
 import { isAllowedSignupEmail, ALLOWED_SIGNUP_DOMAINS } from '../lib/allowedDomains.js';
 
 const OTP_TTL_MINUTES = 10;

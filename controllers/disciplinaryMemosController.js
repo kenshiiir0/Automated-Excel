@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 import { MEMO_TYPES, COMPANY_RULES, getMemoTypeConfig, renderMemoDocx, TODAY_LONG } from '../lib/disciplinaryMemos.js';
-import { sendDisciplinaryMemoEmail } from '../lib/resend.js';
+import { sendDisciplinaryMemoEmail } from '../lib/mailer.js';
 import { draftIncidentNarrative } from '../lib/narrativeDrafter.js';
 
 function formatEmployeeName(emp) {
@@ -17,7 +17,18 @@ function formatEmployeeName(emp) {
 function formatDateForMemo(dateStr) {
     if (!dateStr) return '';
     try {
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+        // Parse a plain "YYYY-MM-DD" (from a <input type="date">) as a
+        // LOCAL date, not via `new Date(dateStr)` -- that treats a
+        // date-only string as UTC midnight, which rolls back to the
+        // previous day in any timezone ahead of UTC (e.g. Philippines,
+        // UTC+8). Anything else (an ISO timestamp, or already-formatted
+        // text from an older record) falls through to the plain
+        // new Date() parse below, which is fine for those shapes.
+        const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+        const parsed = dateOnlyMatch
+            ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+            : new Date(dateStr);
+        return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
     } catch {
         return dateStr;
     }
@@ -89,7 +100,7 @@ const previewMemo = async (req, res) => {
             company: '2MG Incorporated',
             memo_date: memoDate || TODAY_LONG(),
             rule_text: ruleText,
-            incident_date: incidentDate || '',
+            incident_date: formatDateForMemo(incidentDate) || '',
             incident_time: incidentTime || 'Working hours',
             incident_narrative: incidentNarrative,
         };
@@ -145,7 +156,7 @@ const sendMemo = async (req, res) => {
             company: '2MG Incorporated',
             memo_date: resolvedMemoDate,
             rule_text: ruleText,
-            incident_date: incidentDate || '',
+            incident_date: formatDateForMemo(incidentDate) || '',
             incident_time: incidentTime || 'Working hours',
             incident_narrative: incidentNarrative,
         };
@@ -276,7 +287,7 @@ const downloadMemo = async (req, res) => {
             company: '2MG Incorporated',
             memo_date: memo.memo_date || TODAY_LONG(),
             rule_text: memo.rule_text,
-            incident_date: memo.incident_date || '',
+            incident_date: formatDateForMemo(memo.incident_date) || '',
             incident_time: memo.incident_time || 'Working hours',
             incident_narrative: memo.incident_narrative,
         };

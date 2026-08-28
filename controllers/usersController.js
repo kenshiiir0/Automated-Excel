@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../lib/supabase.js';
-import { sendWelcomeEmail } from '../lib/resend.js';
+import { sendWelcomeEmail } from '../lib/mailer.js';
 import { isAllowedSignupEmail, ALLOWED_SIGNUP_DOMAINS } from '../lib/allowedDomains.js';
 import { logCreate, logUpdate, logArchive, logRestore } from '../lib/auditLog.js';
 
