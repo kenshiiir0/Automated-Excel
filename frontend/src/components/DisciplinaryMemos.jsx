@@ -333,11 +333,21 @@ export default function DisciplinaryMemos({ visible } = {}) {
             });
             setHistory(prev => [data.memo, ...prev]);
             setShowSendOptions(false);
-            // Reset the form for the next memo.
+            // Full reset for the next memo -- every field the form
+            // collects, not just some of them. Missing ruleCode/
+            // bulletFacts/incidentTime/memoType here previously left the
+            // Company Rule dropdown, Quick Facts box, and Memo Type
+            // selector showing the just-sent memo's values, which read as
+            // "did this actually reset?" even though the fields that WERE
+            // cleared (narrative, date, employee) made it look mostly done.
             setSelectedEmployee(null);
             setEmployeeSearch('');
+            setMemoType('NTE');
+            setRuleCode('');
             setRuleText('');
             setIncidentDate('');
+            setIncidentTime('Working hours');
+            setBulletFacts('');
             setIncidentNarrative('');
             setPriorWarningNote('');
             if (previewUrl) window.URL.revokeObjectURL(previewUrl);

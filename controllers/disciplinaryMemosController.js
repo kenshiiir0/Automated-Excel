@@ -200,7 +200,12 @@ const sendMemo = async (req, res) => {
                 sent_to_email: toEmail,
                 created_by: req.user.id,
             })
-            .select()
+            // Same relational select as listMemos() -- without this, the
+            // row returned here has no nested `employees` object, so the
+            // Recently Issued table (which reads m.employees.first_name/
+            // last_name) fell back to showing '--' for the just-sent memo
+            // until the next full page load re-fetched it with the join.
+            .select('*, employees(first_name, last_name, middle_name)')
             .single();
         if (insertError) throw insertError;
 
