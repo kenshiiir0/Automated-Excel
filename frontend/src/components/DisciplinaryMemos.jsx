@@ -490,7 +490,17 @@ export default function DisciplinaryMemos({ visible } = {}) {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+                    {/* Visible, always-on hint (not just a hover tooltip) explaining
+                        exactly why Send is greyed out -- a disabled button with only
+                        a title="..." tooltip is easy to read as broken rather than
+                        "do this one step first", since a tooltip only shows up if
+                        you happen to hover exactly over it. */}
+                    {canGenerate && !previewUrl && (
+                        <span className="send-gate-hint">
+                            <Icon name="alertTriangle" size={13} /> Click "Generate &amp; Preview" first to enable Send
+                        </span>
+                    )}
                     <button type="button" className="btn-ghost" disabled={!canGenerate || generating} onClick={handleGeneratePreview} title="Opens the document in a new tab for review">
                         {generating ? 'Generating…' : 'Generate & Preview'}
                     </button>
