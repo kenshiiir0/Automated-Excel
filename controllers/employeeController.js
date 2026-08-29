@@ -14,23 +14,13 @@ function stripSensitiveFields(record) {
     return clean;
 }
 
-// TEMPORARY as of 2026-08-27, per HR request: sensitive fields (salary,
-// SSS/PhilHealth/HDMF/TIN, bank name/account) are hidden from EVERY role
-// right now, including admin/super_admin -- not just 'user' as originally
-// designed below. This is a deliberate, reversible stop-gap ("we will
-// bring it back later"), not a permanent policy change.
-//
-// To restore the original behavior (strip only for 'user', full visibility
-// for admin/super_admin), delete the line below this comment block and
-// uncomment the original condition underneath it.
-const HIDE_SENSITIVE_FROM_ALL_ROLES_TEMPORARY = true;
-
+// Restored 2026-08-29: reverted the 2026-08-27 temporary all-roles hide
+// (see git history for that stop-gap) now that the Payroll page needs
+// admin/super_admin to actually see salary/gov-ID/bank data again. Only
+// the 'user' role has these fields stripped; admin and super_admin see
+// the full record, same as originally designed.
 function withRoleFilter(req, data) {
-    if (HIDE_SENSITIVE_FROM_ALL_ROLES_TEMPORARY) {
-        return Array.isArray(data) ? data.map(stripSensitiveFields) : stripSensitiveFields(data);
-    }
-    // Original rule, to restore later: only 'user' role has these fields stripped.
-    // if (req.user?.role !== 'user') return data;
+    if (req.user?.role !== 'user') return data;
     return Array.isArray(data) ? data.map(stripSensitiveFields) : stripSensitiveFields(data);
 }
 
