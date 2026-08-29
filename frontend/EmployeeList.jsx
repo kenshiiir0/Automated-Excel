@@ -216,7 +216,20 @@ export default function EmployeeList({ visible } = {}) {
     if (visible) fetchEmployees();
   }, [visible]);
 
+  // Guards against overlapping fetchEmployees() calls landing on top of
+  // each other -- e.g. the mount effect and a near-simultaneous
+  // visibility-change effect both firing close together on a slow
+  // connection. Without this, two in-flight requests can each call
+  // setEmployees() with their own response as they land, and on a slow/
+  // flaky connection the SLOWER request can resolve AFTER the faster
+  // one, needlessly re-rendering the whole list (and anything mounted
+  // under it, like an open Add Employee modal's dropdowns) a second
+  // time for no new data. inFlightRef makes a second call while one is
+  // already running a no-op instead of a second parallel request.
+  const inFlightRef = useRef(false);
   const fetchEmployees = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     try {
       const res = await fetch('/api/employees');
@@ -226,6 +239,7 @@ export default function EmployeeList({ visible } = {}) {
       console.error('Error fetching employees:', err);
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
   };
 
