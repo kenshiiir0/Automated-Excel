@@ -303,6 +303,8 @@ export default function Payroll({ visible } = {}) {
     const [showAll, setShowAll] = useState(false);
     const [showAllConfirmOpen, setShowAllConfirmOpen] = useState(false);
     const [calcEmployee, setCalcEmployee] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     const loadEmployees = useCallback(async () => {
         setLoading(true);
@@ -375,6 +377,20 @@ export default function Payroll({ visible } = {}) {
         }
         return true;
     });
+
+    // Jump back to page 1 whenever the search/filter criteria change, so
+    // the user never lands on a now-empty page after narrowing results
+    // down from underneath their current page. Same pattern as
+    // EmployeeList.jsx.
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, filterDept, filterPosition, filterBank, filterSalary]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const paginated = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filtered.slice(start, start + PAGE_SIZE);
+    }, [filtered, currentPage]);
 
     // Salary is stored as a flat number/string per employee (see
     // lib/schemas.js) -- there's no pay-period, earnings/deductions, or
@@ -529,7 +545,7 @@ export default function Payroll({ visible } = {}) {
                                     {employees.length === 0 ? 'No employee records found.' : 'No records match your search.'}
                                 </td>
                             </tr>
-                        ) : filtered.map(e => (
+                        ) : paginated.map(e => (
                             <tr key={e.id || e.emp_id} className="table-row">
                                 <td style={{ fontWeight: 600, color: '#1a202c' }}>{dash(e.emp_id)}</td>
                                 <td>{[e.last_name, e.first_name].filter(Boolean).join(', ') || '—'}</td>
@@ -558,6 +574,52 @@ export default function Payroll({ visible } = {}) {
                     </tbody>
                 </table>
             </div>
+
+            {!loading && filtered.length > 0 && (
+                <div className="pagination-bar">
+                    <span className="pagination-summary">
+                        Showing {(currentPage - 1) * PAGE_SIZE + 1}
+                        {'-'}
+                        {Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+                    </span>
+                    <div className="pagination-controls">
+                        <button
+                            className="pagination-btn"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            ‹ Prev
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                            .reduce((acc, p, idx, arr) => {
+                                if (idx > 0 && p - arr[idx - 1] > 1) acc.push('ellipsis-' + p);
+                                acc.push(p);
+                                return acc;
+                            }, [])
+                            .map(p =>
+                                typeof p === 'string' ? (
+                                    <span key={p} className="pagination-ellipsis">…</span>
+                                ) : (
+                                    <button
+                                        key={p}
+                                        className={`pagination-btn${p === currentPage ? ' active' : ''}`}
+                                        onClick={() => setCurrentPage(p)}
+                                    >
+                                        {p}
+                                    </button>
+                                )
+                            )}
+                        <button
+                            className="pagination-btn"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next ›
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
