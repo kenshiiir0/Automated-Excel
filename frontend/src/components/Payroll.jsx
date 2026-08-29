@@ -146,6 +146,128 @@ function MaskedValue({ value, formatter, label, showAll }) {
     );
 }
 
+function Row({ label, value, strong, indent }) {
+    return (
+        <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+            padding: '7px 0', borderBottom: '1px solid #eef1f4',
+            paddingLeft: indent ? 16 : 0,
+        }}>
+            <span style={{ fontSize: 13.5, color: strong ? '#1a202c' : '#4a5568', fontWeight: strong ? 700 : 400 }}>{label}</span>
+            <span style={{ fontSize: 13.5, fontFamily: 'monospace', fontWeight: strong ? 700 : 600, color: strong ? '#1a202c' : '#2d3748' }}>{value}</span>
+        </div>
+    );
+}
+
+function CalcSection({ title, subtitle, children }) {
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a202c' }}>{title}</div>
+                {subtitle && <div style={{ fontSize: 11.5, color: '#718096', marginTop: 1 }}>{subtitle}</div>}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+// Payroll calculation modal -- shows the actual government-deduction
+// breakdown (SSS, PhilHealth, Pag-IBIG/HDMF, BIR withholding tax) computed
+// from this employee's stored salary. This is a PILOT: the calculation
+// only runs for one employee (Cedric Angelo Gencianos) while the math is
+// validated -- see lib/payrollCalculator.js and routes/payrollTest.js for
+// why. Clicking the "Payroll Calc" button for anyone else shows a clear
+// explanation instead of pretending to compute something for them.
+function PayrollCalcModal({ employee, onClose }) {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const isPilotEmployee = /cedric/i.test(employee.first_name || '') && /gencianos/i.test(employee.last_name || '');
+
+    useEffect(() => {
+        if (!isPilotEmployee) { setLoading(false); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch('/api/payroll-test/cedric-test');
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Could not compute payroll.');
+                if (!cancelled) setData(json);
+            } catch (err) {
+                if (!cancelled) setError(err.message);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isPilotEmployee]);
+
+    const empName = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || employee.emp_id;
+
+    return (
+        <Modal title="Payroll Calculation" onClose={onClose} maxWidth={480}>
+            {!isPilotEmployee ? (
+                <p style={{ fontSize: 13.5, color: '#4a5568', lineHeight: 1.6, marginTop: 0 }}>
+                    This calculator is a <strong>pilot</strong>, currently validated for only one employee
+                    (Cedric Angelo Gencianos) while the SSS/PhilHealth/Pag-IBIG/BIR deduction math is being
+                    checked. It isn't available yet for <strong>{empName}</strong> or anyone else — extending
+                    it to the rest of the team is a deliberate next step once the government contribution
+                    tables have been verified against current official rates.
+                </p>
+            ) : loading ? (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: '#718096', fontSize: 13.5 }}>Computing…</div>
+            ) : error ? (
+                <div style={{
+                    background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 8,
+                    padding: '12px 14px', color: '#c53030', fontSize: 13,
+                }}>
+                    {error}
+                </div>
+            ) : data && (
+                <>
+                    <div style={{
+                        background: '#fffbea', border: '1px solid #f6e05e', borderRadius: 8,
+                        padding: '10px 12px', marginBottom: 16, fontSize: 12, color: '#744210', lineHeight: 1.5,
+                    }}>
+                        Pilot calculation, full attendance assumed (no absences/late/holidays factored in yet).
+                        Government contribution tables were not verified against current-year official circulars
+                        at build time — treat this as a demonstration of the method, not a final payslip.
+                    </div>
+
+                    <CalcSection title="Pay Period" subtitle={data.assumptions?.cutoff}>
+                        <Row label="Monthly Salary (on file)" value={money(data.payroll.monthlySalary)} />
+                        <Row label="Semi-Monthly Gross" value={money(data.payroll.semiMonthlyGross)} strong />
+                    </CalcSection>
+
+                    <CalcSection title="Government Deductions (employee share, this cutoff)">
+                        <Row label="SSS" value={money(data.payroll.deductions.sss.employeeShare)} />
+                        <Row label="Monthly Salary Credit used" value={dash(data.payroll.deductions.sss.monthlySalaryCredit)} indent />
+                        <Row label="Bracket" value={dash(data.payroll.deductions.sss.bracketRange)} indent />
+
+                        <Row label="PhilHealth" value={money(data.payroll.deductions.philhealth.employeeShare)} />
+                        <Row label="Premium base used" value={money(data.payroll.deductions.philhealth.premiumBase)} indent />
+
+                        <Row label="Pag-IBIG (HDMF)" value={money(data.payroll.deductions.hdmf.employeeShare)} />
+                        <Row label="Contribution base used" value={money(data.payroll.deductions.hdmf.contributionBase)} indent />
+
+                        <Row label="Withholding Tax (BIR)" value={money(data.payroll.deductions.withholdingTax.amount)} />
+                        <Row label="Bracket applied" value={dash(data.payroll.deductions.withholdingTax.bracketLabel)} indent />
+                    </CalcSection>
+
+                    <CalcSection title="Result">
+                        <Row label="Total Deductions" value={money(data.payroll.totalDeductions)} />
+                        <Row label="Net Pay (this cutoff)" value={money(data.payroll.netPay)} strong />
+                    </CalcSection>
+                </>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
+            </div>
+        </Modal>
+    );
+}
+
 // Confirm step before turning "Show Sensitive Data" ON (turning it back
 // off needs no confirmation -- that direction only ever hides data, never
 // exposes it). Reuses the same Modal + Cancel/Confirm-button shape as
@@ -180,6 +302,7 @@ export default function Payroll({ visible } = {}) {
     const [filterSalary, setFilterSalary] = useState('All');
     const [showAll, setShowAll] = useState(false);
     const [showAllConfirmOpen, setShowAllConfirmOpen] = useState(false);
+    const [calcEmployee, setCalcEmployee] = useState(null);
 
     const loadEmployees = useCallback(async () => {
         setLoading(true);
@@ -284,11 +407,18 @@ export default function Payroll({ visible } = {}) {
                 />
             )}
 
+            {calcEmployee && (
+                <PayrollCalcModal
+                    employee={calcEmployee}
+                    onClose={() => setCalcEmployee(null)}
+                />
+            )}
+
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Payroll</h1>
                     <p className="page-subtitle">
-                        Salary, bank, and government ID records already on file — read-only, for transparency. Not connected to any outside payroll processor.
+                        Salary, bank, and government ID records already on file — read-only, for transparency. Not connected to any outside payroll processor. "Compute" runs a pilot government-deduction calculation (SSS/PhilHealth/Pag-IBIG/BIR), currently available for one test employee only.
                     </p>
                 </div>
                 <button
@@ -389,12 +519,13 @@ export default function Payroll({ visible } = {}) {
                             <th>PhilHealth No.</th>
                             <th>HDMF No.</th>
                             <th>TIN</th>
+                            <th>Payroll Calc</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
+                                <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#a0aec0', fontStyle: 'italic' }}>
                                     {employees.length === 0 ? 'No employee records found.' : 'No records match your search.'}
                                 </td>
                             </tr>
@@ -411,6 +542,17 @@ export default function Payroll({ visible } = {}) {
                                 <td><MaskedValue value={e.philhealth_number} label="PhilHealth No." showAll={showAll} /></td>
                                 <td><MaskedValue value={e.hdmf_number} label="HDMF No." showAll={showAll} /></td>
                                 <td><MaskedValue value={e.tin_number} label="TIN" showAll={showAll} /></td>
+                                <td>
+                                    <button
+                                        type="button"
+                                        className="btn-ghost"
+                                        onClick={() => setCalcEmployee(e)}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', fontSize: 12.5, whiteSpace: 'nowrap' }}
+                                        title="View computed government deductions and net pay"
+                                    >
+                                        <Icon name="calculator" size={13} /> Compute
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
