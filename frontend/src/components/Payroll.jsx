@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Icon from '../../Icon.jsx';
+import CustomSelect from '../../CustomSelect.jsx';
 
 // Payroll is our own in-app view built from data we already store on the
 // employee record (salary, bank details, government ID numbers) -- it is
@@ -79,6 +80,10 @@ export default function Payroll({ visible } = {}) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [search, setSearch] = useState('');
+    const [filterDept, setFilterDept] = useState('All');
+    const [filterPosition, setFilterPosition] = useState('All');
+    const [filterBank, setFilterBank] = useState('All');
+    const [filterSalary, setFilterSalary] = useState('All');
 
     const loadEmployees = useCallback(async () => {
         setLoading(true);
@@ -107,17 +112,41 @@ export default function Payroll({ visible } = {}) {
         if (visible) loadEmployees();
     }, [visible, loadEmployees]);
 
+    // Dropdown option lists, derived from whatever's actually on file --
+    // same pattern as EmployeeList.jsx's departments/positions useMemo, so
+    // a department or bank name that's never been entered doesn't show up
+    // as a selectable-but-always-empty option. Not offered as filters:
+    // Bank Account / SSS / PhilHealth / HDMF / TIN -- those are unique
+    // per-person identifiers, so a dropdown of hundreds of individual
+    // numbers isn't a meaningful filter; the search box already covers
+    // "find this specific person by an ID" lookups.
+    const departments = useMemo(() =>
+        [...new Set(employees.map(e => e.department).filter(Boolean))].sort(), [employees]);
+    const positions = useMemo(() =>
+        [...new Set(employees.map(e => e.position).filter(Boolean))].sort(), [employees]);
+    const banks = useMemo(() =>
+        [...new Set(employees.map(e => e.bank_name).filter(Boolean))].sort(), [employees]);
+
     // Only active, non-archived employees come back from GET /api/employees
     // by default (see employeeController.js), so this list is already
     // "current headcount" -- no separate status filter needed here.
     const q = search.trim().toLowerCase();
-    const filtered = q
-        ? employees.filter(e => {
+    const filtered = employees.filter(e => {
+        if (q) {
             const hay = [e.emp_id, e.first_name, e.last_name, e.department, e.position, e.bank_name]
                 .filter(Boolean).join(' ').toLowerCase();
-            return hay.includes(q);
-        })
-        : employees;
+            if (!hay.includes(q)) return false;
+        }
+        if (filterDept !== 'All' && e.department !== filterDept) return false;
+        if (filterPosition !== 'All' && e.position !== filterPosition) return false;
+        if (filterBank !== 'All' && e.bank_name !== filterBank) return false;
+        if (filterSalary !== 'All') {
+            const hasSalary = e.salary !== null && e.salary !== undefined && e.salary !== '' && !Number.isNaN(Number(e.salary));
+            if (filterSalary === 'Has' && !hasSalary) return false;
+            if (filterSalary === 'Missing' && hasSalary) return false;
+        }
+        return true;
+    });
 
     // Salary is stored as a flat number/string per employee (see
     // lib/schemas.js) -- there's no pay-period, earnings/deductions, or
@@ -188,7 +217,39 @@ export default function Payroll({ visible } = {}) {
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
+                    {search && (
+                        <button className="search-clear" onClick={() => setSearch('')}>✕</button>
+                    )}
                 </div>
+                <CustomSelect
+                    className="filter-select"
+                    value={filterDept}
+                    onChange={setFilterDept}
+                    options={[{ value: 'All', label: 'All Departments' }, ...departments.map(d => ({ value: d, label: d }))]}
+                />
+                <CustomSelect
+                    className="filter-select"
+                    value={filterPosition}
+                    onChange={setFilterPosition}
+                    options={[{ value: 'All', label: 'All Positions' }, ...positions.map(p => ({ value: p, label: p }))]}
+                />
+                <CustomSelect
+                    className="filter-select"
+                    value={filterBank}
+                    onChange={setFilterBank}
+                    options={[{ value: 'All', label: 'All Banks' }, ...banks.map(b => ({ value: b, label: b }))]}
+                />
+                <CustomSelect
+                    className="filter-select"
+                    value={filterSalary}
+                    onChange={setFilterSalary}
+                    options={[
+                        { value: 'All', label: 'All Records' },
+                        { value: 'Has', label: 'Salary on File' },
+                        { value: 'Missing', label: 'Missing Salary' },
+                    ]}
+                />
+                <span className="results-count">{filtered.length} of {employees.length}</span>
             </div>
 
             <div className="table-card">
