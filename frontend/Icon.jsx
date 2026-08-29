@@ -38,6 +38,7 @@ const PATHS = {
   file: <><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" /><path d="M15 2v5h5" /></>,
   alertDoc: <><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" /><path d="M15 2v5h5" /><path d="M12 11v3" /><path d="M12 17h.01" /></>,
   cash: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M6 6v12M18 6v12" /></>,
+  calculator: <><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M8 6h8" /><circle cx="8.5" cy="11" r="0.9" /><circle cx="12" cy="11" r="0.9" /><circle cx="15.5" cy="11" r="0.9" /><circle cx="8.5" cy="14.5" r="0.9" /><circle cx="12" cy="14.5" r="0.9" /><circle cx="15.5" cy="14.5" r="0.9" /><circle cx="8.5" cy="18" r="0.9" /><circle cx="12" cy="18" r="0.9" /><circle cx="15.5" cy="18" r="0.9" /></>,
   upload: <><path d="M12 21V9" /><path d="M7 14l5-5 5 5" /><path d="M4 21h16" /></>,
   chevronDown: <path d="M5 8l7 7 7-7" />,
 };

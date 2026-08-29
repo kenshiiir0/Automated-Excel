@@ -8,6 +8,7 @@ import History from './components/History.jsx';
 import HrDocuments from './components/HrDocuments.jsx';
 import DisciplinaryMemos from './components/DisciplinaryMemos.jsx';
 import Payroll from './components/Payroll.jsx';
+import PayrollTest from './components/PayrollTest.jsx';
 import SendFiles from './components/SendFiles.jsx';
 import EmployeeList from '../EmployeeList.jsx';
 import RecruitmentTracker from '../RecruitmentTracker.jsx';
@@ -40,6 +41,7 @@ const PAGES = [
   { path: '/hr-documents', Component: HrDocuments, keepAlive: false },
   { path: '/disciplinary-memos', Component: DisciplinaryMemos, keepAlive: true },
   { path: '/payroll', Component: Payroll, keepAlive: true },
+    { path: '/payroll-test', Component: PayrollTest, keepAlive: true },
   { path: '/send-files', Component: SendFiles, keepAlive: true },
   { path: '/profile', Component: Profile, keepAlive: true },
   { path: '/users', Component: UserManagement, keepAlive: true },
