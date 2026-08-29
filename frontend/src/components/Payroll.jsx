@@ -256,7 +256,7 @@ function PayrollCalcModal({ employee, onClose }) {
                                     value={holidayDate}
                                     onChange={e => setHolidayDate(e.target.value)}
                                     className="emp-form-input"
-                                    style={{ flex: '1 1 220px', fontSize: 13 }}
+                                    style={{ width: 260, maxWidth: '100%', fontSize: 13 }}
                                 >
                                     <option value="">No holiday — ordinary cutoff</option>
                                     {holidays.map(h => (
