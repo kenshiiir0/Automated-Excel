@@ -345,6 +345,7 @@ function PayrollCalcModal({ employee, onClose }) {
                             </CalcSection>
 
                             <CalcSection title="Result">
+                                <Row label="Monthly Salary (on file)" value={money(data.payroll.monthlySalary)} />
                                 <Row label="Total Deductions" value={money(data.payroll.totalDeductions)} />
                                 <Row label="Net Pay (this cutoff)" value={money(data.payroll.netPay)} strong />
                             </CalcSection>
