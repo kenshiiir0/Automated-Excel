@@ -198,6 +198,21 @@ function cutoffLabelFor(key) {
     return `${monthName} ${year}, ${half} cutoff`;
 }
 
+// Matches the real payslip's "Payroll Period" format exactly, e.g.
+// "Aug 11, 2026 - Aug 25, 2026" -- a date range, not the "1st-15th cutoff"
+// wording used elsewhere in this file's own UI labels.
+function payrollPeriodLabelFor(key) {
+    const match = key.match(/^(\d{4})-(\d{2})-(1st-15th|16th-end)$/);
+    if (!match) return '';
+    const [, year, month, half] = match;
+    const lastDayOfMonth = new Date(Number(year), Number(month), 0).getDate();
+    const startDay = half === '1st-15th' ? 1 : 16;
+    const endDay = half === '1st-15th' ? 15 : lastDayOfMonth;
+    const fmt = (day) => new Date(Number(year), Number(month) - 1, day)
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${fmt(startDay)} - ${fmt(endDay)}`;
+}
+
 function PayrollCalcModal({ employee, onClose }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -310,7 +325,7 @@ function PayrollCalcModal({ employee, onClose }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    cutoffLabel: selectedCutoff ? cutoffLabelFor(selectedCutoff) : undefined,
+                    payrollPeriodLabel: selectedCutoff ? payrollPeriodLabelFor(selectedCutoff) : undefined,
                     holidays: holidaysPayload,
                 }),
             });

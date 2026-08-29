@@ -42,7 +42,7 @@ async function fetchPilotEmployee() {
 }
 
 // POST /api/payroll-payslip/generate
-// Body: { cutoffLabel?: string, payDate?: string, holidays?: [{date, wasPresent, isRestDay?, presentDayBefore?}] }
+// Body: { payrollPeriodLabel?: string, payDate?: string, holidays?: [{date, wasPresent, isRestDay?, presentDayBefore?}] }
 // Returns the rendered .docx directly (same "generate fresh every time,
 // never store a binary blob" approach as disciplinaryMemosController.js).
 router.post('/generate', requireRole('admin', 'super_admin'), async (req, res) => {
@@ -89,9 +89,8 @@ router.post('/generate', requireRole('admin', 'super_admin'), async (req, res) =
         const fields = buildPayslipFields({
             employee,
             payroll,
-            cutoffLabel: req.body?.cutoffLabel,
+            payrollPeriodLabel: req.body?.payrollPeriodLabel,
             payDate: req.body?.payDate,
-            preparedBy: req.user?.username || 'HR Department',
         });
 
         const buffer = renderPayslipDocx(fields);
