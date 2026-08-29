@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 import { sendFileEmail } from '../lib/mailer.js';
+import { sanitizeFilename } from '../lib/filenameSanitize.js';
+import { logCreate } from '../lib/auditLog.js';
 
 // Only common document/image types are accepted -- this is the same
 // allowlist enforced by the multer fileFilter in routes/fileShare.js,
@@ -90,6 +92,10 @@ export const sendFile = async (req, res) => {
 
         const employeeName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Employee';
         const senderName = await getSendingUserName(req.user.id);
+        // originalname is fully attacker-controlled -- sanitize before it
+        // reaches the outgoing email's HTML body or gets stored for later
+        // display on the History page. See lib/filenameSanitize.js.
+        const safeFilename = sanitizeFilename(req.file.originalname);
 
         await sendFileEmail({
             toEmail,
@@ -97,14 +103,14 @@ export const sendFile = async (req, res) => {
             senderName,
             note: (note || '').trim(),
             attachmentBuffer: req.file.buffer,
-            attachmentFilename: req.file.originalname,
+            attachmentFilename: safeFilename,
         });
 
         const { data: record, error: insertError } = await supabaseAdmin
             .from('file_shares')
             .insert({
                 employee_id: employeeId,
-                file_name: req.file.originalname,
+                file_name: safeFilename,
                 file_size_bytes: req.file.size,
                 file_mime_type: req.file.mimetype,
                 sent_to_email: toEmail,
@@ -115,6 +121,16 @@ export const sendFile = async (req, res) => {
             .select('*, employees(first_name, last_name)')
             .single();
         if (insertError) throw insertError;
+
+        // Audit trail: sending an arbitrary file to an employee's personal
+        // inbox is a sensitive action (PII/attachment leaving the system)
+        // that previously left no trace in History at all.
+        await logCreate({
+            entityType: 'file_share',
+            entityId: record.id,
+            entityLabel: `${safeFilename} -> ${employeeName}`,
+            req,
+        });
 
         res.json({ sent: true, toEmail, share: record });
     } catch (err) {

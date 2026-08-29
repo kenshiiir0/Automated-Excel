@@ -2,6 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import { sendFile, listFileShares, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from '../controllers/fileShareController.js';
 import { requireWriteAccess } from '../lib/requireRole.js';
+import { verifyActualFileType } from '../lib/fileTypeCheck.js';
+import { asyncHandler } from '../lib/asyncHandler.js';
 
 const router = express.Router();
 
@@ -37,10 +39,27 @@ function handleUpload(req, res, next) {
     });
 }
 
+// Second-stage check after multer accepts the upload: the fileFilter
+// above only looked at the client-DECLARED Content-Type, which is
+// trivial to spoof (rename payload.exe to invoice.pdf, set
+// Content-Type: application/pdf). This sniffs the actual file content's
+// signature and rejects anything where the two disagree, closing that
+// gap before the buffer reaches sendFile() and goes out as an email
+// attachment.
+async function verifyUploadedFileType(req, res, next) {
+    if (!req.file) return next();
+    const { ok, sniffed } = await verifyActualFileType(req.file.buffer, req.file.mimetype);
+    if (!ok) {
+        console.warn(`File upload rejected -- declared "${req.file.mimetype}", actual content sniffed as "${sniffed || 'unrecognized'}", uploader: ${req.user?.id}`);
+        return res.status(400).json({ error: "This file's content does not match its declared type and was rejected." });
+    }
+    next();
+}
+
 // Admin/super_admin only, same gate as disciplinary memos -- sending an
 // arbitrary file straight to an employee's inbox is a write/HR action,
 // not something a plain 'user' role account should be able to trigger.
-router.get('/file-share', requireWriteAccess, listFileShares);
-router.post('/file-share/send', requireWriteAccess, handleUpload, sendFile);
+router.get('/file-share', requireWriteAccess, asyncHandler(listFileShares));
+router.post('/file-share/send', requireWriteAccess, handleUpload, asyncHandler(verifyUploadedFileType), asyncHandler(sendFile));
 
 export default router;

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '../lib/supabase.js';
 import { MEMO_TYPES, COMPANY_RULES, getMemoTypeConfig, renderMemoDocx, TODAY_LONG } from '../lib/disciplinaryMemos.js';
 import { sendDisciplinaryMemoEmail } from '../lib/mailer.js';
 import { draftIncidentNarrative } from '../lib/narrativeDrafter.js';
+import { logCreate } from '../lib/auditLog.js';
 
 function formatEmployeeName(emp) {
     // "Last, First M." to match the source templates' signature style.
@@ -208,6 +209,16 @@ const sendMemo = async (req, res) => {
             .select('*, employees(first_name, last_name, middle_name)')
             .single();
         if (insertError) throw insertError;
+
+        // Audit trail: issuing a formal disciplinary memo against an
+        // employee is one of the most sensitive actions in the app and
+        // previously left no trace in History at all.
+        await logCreate({
+            entityType: 'disciplinary_memo',
+            entityId: record.id,
+            entityLabel: `${config.label} -- ${employeeName}`,
+            req,
+        });
 
         res.json({ sent: true, toEmail, memo: record });
     } catch (err) {

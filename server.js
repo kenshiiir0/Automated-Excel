@@ -72,7 +72,14 @@ const corsOptions = {
         // in the first place, and requireApiKey/requireAuth still gate
         // the actual route.
         if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(new Error(`CORS request blocked by origin policy: ${origin}`));
+        // Tagged with a typed marker (isCorsRejection) rather than relied
+        // on by the error handler's message text below -- a plain string
+        // match like /CORS/i.test(err.message) would misclassify any
+        // unrelated future error whose message happens to contain "CORS"
+        // as a blocked-origin rejection instead of its real status.
+        const err = new Error(`CORS request blocked by origin policy: ${origin}`);
+        err.isCorsRejection = true;
+        return callback(err);
     },
     credentials: true,
 };
@@ -133,7 +140,7 @@ app.get('/api/health', (req, res) => {
 // JSON body, and still fully logs + generalizes anything else that
 // reaches here, consistent with the rest of the app's error handling.
 app.use((err, req, res, next) => {
-    if (err && /CORS/i.test(err.message || '')) {
+    if (err?.isCorsRejection) {
         console.warn(`CORS request blocked -- Origin: ${req.headers.origin || '(none)'} on ${req.method} ${req.originalUrl}`);
         return res.status(403).json({ error: 'This origin is not allowed to access this resource.' });
     }

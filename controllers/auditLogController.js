@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../lib/supabase.js';
 
-const VALID_ENTITY_TYPES = ['employee', 'intern', 'candidate', 'user'];
+const VALID_ENTITY_TYPES = ['employee', 'intern', 'candidate', 'user', 'disciplinary_memo', 'file_share', 'leave_request'];
 
 // Backs the History page: every create/update/archive/restore across
 // Employees, Interns, Recruitment Candidates, and User Accounts, newest
