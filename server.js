@@ -121,6 +121,26 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
 });
 
+// Centralized error handler -- must be registered last, and must keep
+// all 4 parameters (err, req, res, next) even though next is unused,
+// since that's how Express recognizes an error-handling middleware.
+// Without this, any error passed via next(err) anywhere in the app --
+// including the CORS origin callback above calling back with an Error
+// for a blocked origin -- falls through to Express's default handler,
+// which returns a bare, unstyled 500 with no JSON body (visible to
+// monitoring/clients as a generic server crash rather than what
+// actually happened). This gives CORS rejections their correct 403 +
+// JSON body, and still fully logs + generalizes anything else that
+// reaches here, consistent with the rest of the app's error handling.
+app.use((err, req, res, next) => {
+    if (err && /CORS/i.test(err.message || '')) {
+        console.warn(`CORS request blocked -- Origin: ${req.headers.origin || '(none)'} on ${req.method} ${req.originalUrl}`);
+        return res.status(403).json({ error: 'This origin is not allowed to access this resource.' });
+    }
+    console.error('Unhandled server error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
