@@ -209,6 +209,8 @@ function PayrollCalcModal({ employee, onClose }) {
     // semi-monthly period (e.g. Apr 2 Maundy Thursday + Apr 3 Good Friday)
     // can be tested together instead of one at a time.
     const [holidaySelections, setHolidaySelections] = useState({});
+    const [generatingPayslip, setGeneratingPayslip] = useState(false);
+    const [payslipError, setPayslipError] = useState(null);
 
     const isPilotEmployee = /cedric/i.test(employee.first_name || '') && /gencianos/i.test(employee.last_name || '');
 
@@ -291,6 +293,49 @@ function PayrollCalcModal({ employee, onClose }) {
     }, [isPilotEmployee, holidaySelections]);
 
     const empName = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || employee.emp_id;
+
+    // Reuses the exact same cutoff/holiday selections already on screen --
+    // whatever the calculation above is showing is exactly what the
+    // payslip will contain, so there's no second, separately-maintained
+    // set of inputs to keep in sync with this one.
+    const generatePayslip = useCallback(async () => {
+        setGeneratingPayslip(true);
+        setPayslipError(null);
+        try {
+            const holidaysPayload = Object.entries(holidaySelections).map(([date, sel]) => ({
+                date,
+                wasPresent: !!sel.wasPresent,
+            }));
+            const res = await fetch('/api/payroll-payslip/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cutoffLabel: selectedCutoff ? cutoffLabelFor(selectedCutoff) : undefined,
+                    holidays: holidaysPayload,
+                }),
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({}));
+                throw new Error(json.error || 'Could not generate the payslip.');
+            }
+            const blob = await res.blob();
+            const disposition = res.headers.get('Content-Disposition') || '';
+            const filenameMatch = disposition.match(/filename="([^"]+)"/);
+            const filename = filenameMatch ? filenameMatch[1] : `Payslip_${empName.replace(/\s+/g, '_')}.docx`;
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            setPayslipError(err.message);
+        } finally {
+            setGeneratingPayslip(false);
+        }
+    }, [holidaySelections, selectedCutoff, empName]);
 
     return (
         <Modal title="Payroll Calculation" onClose={onClose} maxWidth={480}>
@@ -443,6 +488,26 @@ function PayrollCalcModal({ employee, onClose }) {
                                 <Row label="Total Deductions" value={money(data.payroll.totalDeductions)} />
                                 <Row label="Net Pay (this cutoff)" value={money(data.payroll.netPay)} strong />
                             </CalcSection>
+
+                            {payslipError && (
+                                <div style={{
+                                    background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 8,
+                                    padding: '10px 12px', marginBottom: 12, color: '#c53030', fontSize: 12.5,
+                                }}>
+                                    {payslipError}
+                                </div>
+                            )}
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={generatePayslip}
+                                disabled={generatingPayslip}
+                                style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4 }}
+                                title="Generates a .docx payslip matching this exact calculation"
+                            >
+                                <Icon name="download" size={14} />
+                                {generatingPayslip ? 'Generating…' : 'Generate Payslip (.docx)'}
+                            </button>
                         </>
                     )}
                 </>

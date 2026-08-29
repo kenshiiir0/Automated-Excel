@@ -17,6 +17,7 @@ import disciplinaryMemosRoutes from './routes/disciplinaryMemos.js';
 import auditLogRoutes from './routes/auditLog.js';
 import fileShareRoutes from './routes/fileShare.js';
 import payrollTestRoutes from './routes/payrollTest.js';
+import payrollPayslipRoutes from './routes/payrollPayslip.js';
 import { requireAuth } from './lib/requireAuth.js';
 import { apiLimiter } from './lib/rateLimiters.js';
 
@@ -119,6 +120,7 @@ app.use('/api', zohoWorkdriveRoutes);
 app.use('/api', requireAuth, disciplinaryMemosRoutes);
 app.use('/api', requireAuth, fileShareRoutes);
 app.use('/api/payroll-test', requireAuth, payrollTestRoutes);
+app.use('/api/payroll-payslip', requireAuth, payrollPayslipRoutes);
 
 // /api/zoho/* is deliberately NOT behind requireAuth -- it has its own,
 // separate API-key check (see lib/apiKeyAuth.js) because it's meant to be
