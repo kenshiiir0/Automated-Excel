@@ -18,7 +18,7 @@
 import express from 'express';
 import { requireRole } from '../lib/requireRole.js';
 import { supabaseAdmin } from '../lib/supabase.js';
-import { computeSemiMonthlyPayroll } from '../lib/payrollCalculator.js';
+import { computeSemiMonthlyPayroll, PH_HOLIDAYS_2026 } from '../lib/payrollCalculator.js';
 
 const router = express.Router();
 
@@ -27,6 +27,28 @@ const router = express.Router();
 // first+last name, since we don't know for certain which emp_id format
 // was used when this record was created via the Add Employee form.
 const TEST_PAYROLL_NAME_MATCH = { first: 'cedric', last: 'gencianos' };
+
+// Standard DOLE monthly-equivalent factor for a 6-day workweek with an
+// unpaid rest day (261 working days/year): monthlySalary = dailyRate * 261
+// / 12. Cedric's stored `salary` was originally SET by applying this
+// factor forward (₱695/day -> ₱15,116.25/month, per the Mon-Sat schedule
+// confirmed for him) -- there is no separate daily_rate column in the
+// employees table, so this reverses the same factor to recover a daily
+// rate for holiday-pay math. This assumption (6-day week, factor 261) is
+// specific to how Cedric's record was set up; it is NOT a safe assumption
+// to reuse for any other employee without confirming their own schedule.
+const MONTHLY_TO_DAILY_FACTOR = 261 / 12;
+
+function deriveDailyRate(monthlySalary) {
+    return Math.round((monthlySalary / MONTHLY_TO_DAILY_FACTOR) * 100) / 100;
+}
+
+// GET /api/payroll-test/holidays -- returns the 2026 holiday calendar so
+// the frontend can offer a "test against this date" picker instead of the
+// UI hardcoding its own copy of the list.
+router.get('/holidays', requireRole('admin', 'super_admin'), (req, res) => {
+    res.json({ year: 2026, holidays: PH_HOLIDAYS_2026 });
+});
 
 router.get('/cedric-test', requireRole('admin', 'super_admin'), async (req, res) => {
     try {
@@ -51,7 +73,23 @@ router.get('/cedric-test', requireRole('admin', 'super_admin'), async (req, res)
             return res.status(422).json({ error: 'This employee has no valid salary on file yet -- cannot compute payroll.', employee: data });
         }
 
-        const payroll = computeSemiMonthlyPayroll(monthlySalary);
+        // Optional holiday-pay test: ?holidayDate=2026-01-01&wasPresent=true
+        // (&isRestDay=true, &presentDayBefore=false are also accepted).
+        // Only one holiday date at a time for now, matching the UI's single
+        // date-picker -- multiple simultaneous holiday tests in one cutoff
+        // can be added later if needed.
+        const dailyRate = deriveDailyRate(monthlySalary);
+        const holidayAttendance = [];
+        if (req.query.holidayDate) {
+            holidayAttendance.push({
+                date: String(req.query.holidayDate),
+                wasPresent: req.query.wasPresent === 'true',
+                isRestDay: req.query.isRestDay === 'true',
+                presentDayBefore: req.query.presentDayBefore !== 'false',
+            });
+        }
+
+        const payroll = computeSemiMonthlyPayroll(monthlySalary, dailyRate, holidayAttendance);
 
         res.json({
             employee: {
@@ -68,7 +106,8 @@ router.get('/cedric-test', requireRole('admin', 'super_admin'), async (req, res)
             },
             payroll,
             assumptions: {
-                cutoff: 'Semi-monthly, full attendance assumed (no absences/late/holidays factored in yet)',
+                cutoff: 'Semi-monthly, full attendance assumed except for any holiday date tested above',
+                dailyRateNote: `Daily rate (₱${dailyRate}/day) reverse-derived from monthly salary using the 6-day-workweek factor (261 days/yr ÷ 12) confirmed for this employee -- not necessarily valid for other employees.`,
                 note: 'Pilot calculation for one employee only. Government contribution tables used here should be verified against current official SSS/PhilHealth/Pag-IBIG/BIR circulars before relying on this for real payroll.',
             },
         });

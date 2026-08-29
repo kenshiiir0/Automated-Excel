@@ -182,28 +182,54 @@ function PayrollCalcModal({ employee, onClose }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [holidays, setHolidays] = useState([]);
+    const [holidayDate, setHolidayDate] = useState('');
+    const [wasPresent, setWasPresent] = useState(true);
 
     const isPilotEmployee = /cedric/i.test(employee.first_name || '') && /gencianos/i.test(employee.last_name || '');
 
+    // Load the 2026 holiday list once, so the picker below can offer real
+    // dates instead of the UI hardcoding its own separate copy of them.
     useEffect(() => {
-        if (!isPilotEmployee) { setLoading(false); return; }
-        let cancelled = false;
+        if (!isPilotEmployee) return;
         (async () => {
             try {
-                const res = await fetch('/api/payroll-test/cedric-test');
+                const res = await fetch('/api/payroll-test/holidays');
                 const json = await res.json();
-                if (!res.ok) throw new Error(json.error || 'Could not compute payroll.');
-                if (!cancelled) setData(json);
-            } catch (err) {
-                if (!cancelled) setError(err.message);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+                if (res.ok) setHolidays(json.holidays || []);
+            } catch { /* holiday picker is a bonus feature -- silently skip if this fails */ }
         })();
-        return () => { cancelled = true; };
     }, [isPilotEmployee]);
 
+    const runCalculation = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const params = new URLSearchParams();
+            if (holidayDate) {
+                params.set('holidayDate', holidayDate);
+                params.set('wasPresent', String(wasPresent));
+            }
+            const qs = params.toString();
+            const res = await fetch(`/api/payroll-test/cedric-test${qs ? `?${qs}` : ''}`);
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Could not compute payroll.');
+            setData(json);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [holidayDate, wasPresent]);
+
+    useEffect(() => {
+        if (!isPilotEmployee) { setLoading(false); return; }
+        runCalculation();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPilotEmployee, holidayDate, wasPresent]);
+
     const empName = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || employee.emp_id;
+    const selectedHoliday = holidays.find(h => h.date === holidayDate);
 
     return (
         <Modal title="Payroll Calculation" onClose={onClose} maxWidth={480}>
@@ -215,50 +241,115 @@ function PayrollCalcModal({ employee, onClose }) {
                     it to the rest of the team is a deliberate next step once the government contribution
                     tables have been verified against current official rates.
                 </p>
-            ) : loading ? (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: '#718096', fontSize: 13.5 }}>Computing…</div>
-            ) : error ? (
-                <div style={{
-                    background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 8,
-                    padding: '12px 14px', color: '#c53030', fontSize: 13,
-                }}>
-                    {error}
-                </div>
-            ) : data && (
+            ) : (
                 <>
-                    <div style={{
-                        background: '#fffbea', border: '1px solid #f6e05e', borderRadius: 8,
-                        padding: '10px 12px', marginBottom: 16, fontSize: 12, color: '#744210', lineHeight: 1.5,
-                    }}>
-                        Pilot calculation, full attendance assumed (no absences/late/holidays factored in yet).
-                        Government contribution tables were not verified against current-year official circulars
-                        at build time — treat this as a demonstration of the method, not a final payslip.
-                    </div>
+                    {holidays.length > 0 && (
+                        <div style={{
+                            background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: 8,
+                            padding: '12px 14px', marginBottom: 16,
+                        }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1a202c', marginBottom: 8 }}>
+                                Test against a 2026 holiday
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <select
+                                    value={holidayDate}
+                                    onChange={e => setHolidayDate(e.target.value)}
+                                    className="emp-form-input"
+                                    style={{ flex: '1 1 220px', fontSize: 13 }}
+                                >
+                                    <option value="">No holiday — ordinary cutoff</option>
+                                    {holidays.map(h => (
+                                        <option key={h.date} value={h.date}>
+                                            {h.date} — {h.name} ({h.type === 'regular' ? 'Regular' : 'Special Non-Working'}{h.tentative ? ', tentative' : ''})
+                                        </option>
+                                    ))}
+                                </select>
+                                {holidayDate && (
+                                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#4a5568', whiteSpace: 'nowrap' }}>
+                                        <input type="checkbox" checked={wasPresent} onChange={e => setWasPresent(e.target.checked)} />
+                                        Present / worked that day
+                                    </label>
+                                )}
+                            </div>
+                            {selectedHoliday?.tentative && (
+                                <div style={{ fontSize: 11.5, color: '#c05621', marginTop: 6 }}>
+                                    Note: this date is tentative — subject to the Islamic calendar/presidential proclamation.
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                    <CalcSection title="Pay Period" subtitle={data.assumptions?.cutoff}>
-                        <Row label="Monthly Salary (on file)" value={money(data.payroll.monthlySalary)} />
-                        <Row label="Semi-Monthly Gross" value={money(data.payroll.semiMonthlyGross)} strong />
-                    </CalcSection>
+                    {loading ? (
+                        <div style={{ padding: '20px 0', textAlign: 'center', color: '#718096', fontSize: 13.5 }}>Computing…</div>
+                    ) : error ? (
+                        <div style={{
+                            background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 8,
+                            padding: '12px 14px', color: '#c53030', fontSize: 13,
+                        }}>
+                            {error}
+                        </div>
+                    ) : data && (
+                        <>
+                            <div style={{
+                                background: '#fffbea', border: '1px solid #f6e05e', borderRadius: 8,
+                                padding: '10px 12px', marginBottom: 16, fontSize: 12, color: '#744210', lineHeight: 1.5,
+                            }}>
+                                Pilot calculation, full attendance assumed except for the holiday tested above.
+                                Government contribution tables were not verified against current-year official circulars
+                                at build time — treat this as a demonstration of the method, not a final payslip.
+                            </div>
 
-                    <CalcSection title="Government Deductions (employee share, this cutoff)">
-                        <Row label="SSS" value={money(data.payroll.deductions.sss.employeeShare)} />
-                        <Row label="Monthly Salary Credit used" value={dash(data.payroll.deductions.sss.monthlySalaryCredit)} indent />
-                        <Row label="Bracket" value={dash(data.payroll.deductions.sss.bracketRange)} indent />
+                            <CalcSection title="Pay Period" subtitle={data.assumptions?.cutoff}>
+                                <Row label="Monthly Salary (on file)" value={money(data.payroll.monthlySalary)} />
+                                <Row label="Daily Rate (derived)" value={money(data.payroll.dailyRate)} />
+                                <Row label="Base Semi-Monthly Gross" value={money(data.payroll.baseSemiMonthlyGross)} />
+                            </CalcSection>
 
-                        <Row label="PhilHealth" value={money(data.payroll.deductions.philhealth.employeeShare)} />
-                        <Row label="Premium base used" value={money(data.payroll.deductions.philhealth.premiumBase)} indent />
+                            {data.payroll.holidayPay?.entries?.length > 0 && (
+                                <CalcSection title="Holiday Pay">
+                                    {data.payroll.holidayPay.entries.map(entry => (
+                                        <React.Fragment key={entry.date}>
+                                            <Row
+                                                label={`${entry.holidayName} (${entry.date})`}
+                                                value={money(entry.amount)}
+                                                strong
+                                            />
+                                            <div style={{ fontSize: 11.5, color: '#718096', paddingLeft: 16, paddingBottom: 6, lineHeight: 1.4 }}>
+                                                {entry.explanation}
+                                                {entry.tentative && ' (tentative date — subject to confirmation.)'}
+                                            </div>
+                                        </React.Fragment>
+                                    ))}
+                                    <Row label="Total Holiday Pay" value={money(data.payroll.holidayPay.totalHolidayPay)} strong />
+                                </CalcSection>
+                            )}
 
-                        <Row label="Pag-IBIG (HDMF)" value={money(data.payroll.deductions.hdmf.employeeShare)} />
-                        <Row label="Contribution base used" value={money(data.payroll.deductions.hdmf.contributionBase)} indent />
+                            <CalcSection title="Gross for This Cutoff">
+                                <Row label="Semi-Monthly Gross (base + holiday pay)" value={money(data.payroll.semiMonthlyGross)} strong />
+                            </CalcSection>
 
-                        <Row label="Withholding Tax (BIR)" value={money(data.payroll.deductions.withholdingTax.amount)} />
-                        <Row label="Bracket applied" value={dash(data.payroll.deductions.withholdingTax.bracketLabel)} indent />
-                    </CalcSection>
+                            <CalcSection title="Government Deductions (employee share, this cutoff)">
+                                <Row label="SSS" value={money(data.payroll.deductions.sss.employeeShare)} />
+                                <Row label="Monthly Salary Credit used" value={dash(data.payroll.deductions.sss.monthlySalaryCredit)} indent />
+                                <Row label="Bracket" value={dash(data.payroll.deductions.sss.bracketRange)} indent />
 
-                    <CalcSection title="Result">
-                        <Row label="Total Deductions" value={money(data.payroll.totalDeductions)} />
-                        <Row label="Net Pay (this cutoff)" value={money(data.payroll.netPay)} strong />
-                    </CalcSection>
+                                <Row label="PhilHealth" value={money(data.payroll.deductions.philhealth.employeeShare)} />
+                                <Row label="Premium base used" value={money(data.payroll.deductions.philhealth.premiumBase)} indent />
+
+                                <Row label="Pag-IBIG (HDMF)" value={money(data.payroll.deductions.hdmf.employeeShare)} />
+                                <Row label="Contribution base used" value={money(data.payroll.deductions.hdmf.contributionBase)} indent />
+
+                                <Row label="Withholding Tax (BIR)" value={money(data.payroll.deductions.withholdingTax.amount)} />
+                                <Row label="Bracket applied" value={dash(data.payroll.deductions.withholdingTax.bracketLabel)} indent />
+                            </CalcSection>
+
+                            <CalcSection title="Result">
+                                <Row label="Total Deductions" value={money(data.payroll.totalDeductions)} />
+                                <Row label="Net Pay (this cutoff)" value={money(data.payroll.netPay)} strong />
+                            </CalcSection>
+                        </>
+                    )}
                 </>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
