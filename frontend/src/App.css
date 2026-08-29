@@ -3204,7 +3204,16 @@ button.profile-status-pill {
    sync on scroll/resize while open. */
 .custom-select-panel-portal {
   position: fixed;
-  z-index: 1000;
+  /* Higher than .modal-overlay (1100) -- CustomSelect's panel is
+     portaled straight to document.body (see CustomSelect.jsx), so
+     inside a Modal it's a SIBLING of .modal-overlay in the DOM, not a
+     descendant. At the old z-index: 1000 it rendered correctly
+     everywhere outside a modal, but any dropdown opened inside a modal
+     (e.g. Department/Position in the New Employee form) was rendering
+     -- fully present in the DOM, fully visible/opaque -- underneath
+     the modal's own overlay, making it look exactly like it never
+     opened at all. */
+  z-index: 1200;
 }
 
 .custom-select-row {
