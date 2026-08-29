@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffe
 import { createPortal } from 'react-dom';
 import Icon from '../../Icon.jsx';
 import CustomSelect from '../../CustomSelect.jsx';
+import Modal from '../../Modal.jsx';
 
 // Payroll is our own in-app view built from data we already store on the
 // employee record (salary, bank details, government ID numbers) -- it is
@@ -35,8 +36,6 @@ function dash(v) {
 // long the real value actually is. Fixed-length on purpose: mirroring
 // the real length would leak how many digits follow (e.g. a 5-digit vs.
 // 7-digit salary), which is exactly what masking is meant to hide.
-// Hovering (or keyboard focus, so this is reachable without a mouse)
-// swaps in the real full value.
 const MASK_TAIL = '••••••';
 
 function maskTail(display) {
@@ -53,6 +52,11 @@ function maskTail(display) {
 // makes each reveal an intentional action, and the popup closes itself
 // again on an outside click, Escape, or leaving the page/tab.
 //
+// When `showAll` is on (the page-level "Show Sensitive Data" toggle,
+// gated behind its own confirm step -- see ShowAllConfirmModal below),
+// this renders the plain, unmasked value directly with no click needed,
+// and skips all the popup/portal machinery entirely.
+//
 // The popup is portaled to document.body rather than rendered as a normal
 // child, positioned from the trigger's live bounding rect -- same
 // reasoning as CustomSelect.jsx's dropdown panel: a normal child would get
@@ -60,7 +64,7 @@ function maskTail(display) {
 // the card's edge. z-index: 1200 matches .custom-select-panel-portal, one
 // level above .modal-overlay's 1100, so this still renders correctly if
 // this page is ever reached from inside a modal.
-function MaskedValue({ value, formatter, label }) {
+function MaskedValue({ value, formatter, label, showAll }) {
     const [open, setOpen] = useState(false);
     const [rect, setRect] = useState(null);
     const triggerRef = useRef(null);
@@ -103,6 +107,10 @@ function MaskedValue({ value, formatter, label }) {
 
     if (isEmpty) return <span>—</span>;
 
+    // "Show Sensitive Data" is on: skip the mask and the click-popup
+    // entirely, render the plain value like any other column.
+    if (showAll) return <span>{display}</span>;
+
     return (
         <>
             <span
@@ -138,6 +146,29 @@ function MaskedValue({ value, formatter, label }) {
     );
 }
 
+// Confirm step before turning "Show Sensitive Data" ON (turning it back
+// off needs no confirmation -- that direction only ever hides data, never
+// exposes it). Reuses the same Modal + Cancel/Confirm-button shape as
+// ExportConfirmModal.jsx elsewhere in the app.
+function ShowAllConfirmModal({ recordCount, onConfirm, onClose }) {
+    return (
+        <Modal title="Show Sensitive Data" onClose={onClose} maxWidth={440}>
+            <p style={{ fontSize: 13.5, color: '#4a5568', marginTop: 0, lineHeight: 1.5 }}>
+                This will show the real salary, bank account, and government ID numbers for
+                all <strong>{recordCount} employee{recordCount === 1 ? '' : 's'}</strong> currently
+                listed below -- unmasked, with no click needed per cell. Make sure no one else
+                can see your screen before continuing.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+                <button type="button" className="btn-primary" onClick={onConfirm}>
+                    Show Sensitive Data
+                </button>
+            </div>
+        </Modal>
+    );
+}
+
 export default function Payroll({ visible } = {}) {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -147,6 +178,8 @@ export default function Payroll({ visible } = {}) {
     const [filterPosition, setFilterPosition] = useState('All');
     const [filterBank, setFilterBank] = useState('All');
     const [filterSalary, setFilterSalary] = useState('All');
+    const [showAll, setShowAll] = useState(false);
+    const [showAllConfirmOpen, setShowAllConfirmOpen] = useState(false);
 
     const loadEmployees = useCallback(async () => {
         setLoading(true);
@@ -174,6 +207,15 @@ export default function Payroll({ visible } = {}) {
         if (isFirstVisible.current) { isFirstVisible.current = false; return; }
         if (visible) loadEmployees();
     }, [visible, loadEmployees]);
+
+    // Leaving the page (navigating away) or it going invisible re-masks
+    // everything automatically -- "Show Sensitive Data" is a per-visit
+    // choice, not a sticky preference, so coming back to Payroll later
+    // (or another admin opening it) never inherits someone else's earlier
+    // "show all" click.
+    useEffect(() => {
+        if (visible === false) setShowAll(false);
+    }, [visible]);
 
     // Dropdown option lists, derived from whatever's actually on file --
     // same pattern as EmployeeList.jsx's departments/positions useMemo, so
@@ -234,6 +276,14 @@ export default function Payroll({ visible } = {}) {
 
     return (
         <div className="page-container">
+            {showAllConfirmOpen && (
+                <ShowAllConfirmModal
+                    recordCount={filtered.length}
+                    onClose={() => setShowAllConfirmOpen(false)}
+                    onConfirm={() => { setShowAll(true); setShowAllConfirmOpen(false); }}
+                />
+            )}
+
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Payroll</h1>
@@ -241,6 +291,15 @@ export default function Payroll({ visible } = {}) {
                         Salary, bank, and government ID records already on file — read-only, for transparency. Not connected to any outside payroll processor.
                     </p>
                 </div>
+                <button
+                    type="button"
+                    className={showAll ? 'btn-primary' : 'btn-ghost'}
+                    onClick={() => (showAll ? setShowAll(false) : setShowAllConfirmOpen(true))}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+                >
+                    <Icon name={showAll ? 'eye' : 'eyeOff'} size={14} />
+                    {showAll ? 'Hide Sensitive Data' : 'Show Sensitive Data'}
+                </button>
             </div>
 
             {error && <div className="login-error">Could not load payroll data: {error}</div>}
@@ -345,13 +404,13 @@ export default function Payroll({ visible } = {}) {
                                 <td>{[e.last_name, e.first_name].filter(Boolean).join(', ') || '—'}</td>
                                 <td>{dash(e.department)}</td>
                                 <td>{dash(e.position)}</td>
-                                <td style={{ fontWeight: 600 }}><MaskedValue value={e.salary} formatter={money} label="Salary" /></td>
+                                <td style={{ fontWeight: 600 }}><MaskedValue value={e.salary} formatter={money} label="Salary" showAll={showAll} /></td>
                                 <td>{dash(e.bank_name)}</td>
-                                <td><MaskedValue value={e.bank_account} label="Bank Account" /></td>
-                                <td><MaskedValue value={e.sss_number} label="SSS No." /></td>
-                                <td><MaskedValue value={e.philhealth_number} label="PhilHealth No." /></td>
-                                <td><MaskedValue value={e.hdmf_number} label="HDMF No." /></td>
-                                <td><MaskedValue value={e.tin_number} label="TIN" /></td>
+                                <td><MaskedValue value={e.bank_account} label="Bank Account" showAll={showAll} /></td>
+                                <td><MaskedValue value={e.sss_number} label="SSS No." showAll={showAll} /></td>
+                                <td><MaskedValue value={e.philhealth_number} label="PhilHealth No." showAll={showAll} /></td>
+                                <td><MaskedValue value={e.hdmf_number} label="HDMF No." showAll={showAll} /></td>
+                                <td><MaskedValue value={e.tin_number} label="TIN" showAll={showAll} /></td>
                             </tr>
                         ))}
                     </tbody>
