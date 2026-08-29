@@ -64,7 +64,7 @@ const login = async (req, res) => {
         });
     } catch (err) {
         console.error('controllers/authController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

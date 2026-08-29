@@ -24,7 +24,7 @@ const connect = (req, res) => {
         res.json({ authUrl: buildAuthUrl(String(req.user.id)) });
     } catch (err) {
         console.error('controllers/zohoWorkdriveController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -90,7 +90,7 @@ const connectionStatus = async (req, res) => {
         res.json({ connected: await isConnected() });
     } catch (err) {
         console.error('controllers/zohoWorkdriveController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

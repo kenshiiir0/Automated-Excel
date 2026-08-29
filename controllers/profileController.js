@@ -52,7 +52,7 @@ const getProfile = async (req, res) => {
         res.json({ user, employee });
     } catch (err) {
         console.error('controllers/profileController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -79,7 +79,7 @@ const updateProfile = async (req, res) => {
         res.json({ user, employee });
     } catch (err) {
         console.error('controllers/profileController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -118,7 +118,7 @@ const changePassword = async (req, res) => {
         res.json({ message: 'Password updated.' });
     } catch (err) {
         console.error('controllers/profileController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

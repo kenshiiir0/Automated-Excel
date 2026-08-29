@@ -75,7 +75,7 @@ const requestOtp = async (req, res) => {
         res.json({ message: 'Verification code sent. Check your email.' });
     } catch (err) {
         console.error('controllers/signupController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -124,7 +124,7 @@ const verifyOtp = async (req, res) => {
         res.json({ message: 'Account verified. You can now log in.' });
     } catch (err) {
         console.error('controllers/signupController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

@@ -11,7 +11,7 @@ const getAllLeaves = async (req, res) => {
         res.json(data);
     } catch (err) {
         console.error('controllers/leaveController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -26,7 +26,7 @@ const getLeavesByEmployee = async (req, res) => {
         res.json(data);
     } catch (err) {
         console.error('controllers/leaveController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -43,7 +43,7 @@ const createLeave = async (req, res) => {
         res.status(201).json(data[0]);
     } catch (err) {
         console.error('controllers/leaveController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -59,7 +59,7 @@ const updateLeave = async (req, res) => {
         res.json(data[0]);
     } catch (err) {
         console.error('controllers/leaveController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

@@ -23,7 +23,7 @@ const getAllInterns = async (req, res) => {
         res.json(data);
     } catch (err) {
         console.error('controllers/internController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -39,7 +39,7 @@ const getInternById = async (req, res) => {
         res.json(data);
     } catch (err) {
         console.error('controllers/internController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -60,7 +60,7 @@ const createIntern = async (req, res) => {
         res.status(201).json(created);
     } catch (err) {
         console.error('controllers/internController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -86,7 +86,7 @@ const updateIntern = async (req, res) => {
         res.json(updated);
     } catch (err) {
         console.error('controllers/internController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -113,7 +113,7 @@ const deleteIntern = async (req, res) => {
         res.json({ message: 'Intern record archived' });
     } catch (err) {
         console.error('controllers/internController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -138,7 +138,7 @@ const restoreIntern = async (req, res) => {
         res.json({ message: 'Intern record restored' });
     } catch (err) {
         console.error('controllers/internController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

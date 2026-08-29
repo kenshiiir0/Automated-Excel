@@ -36,7 +36,7 @@ const listUsers = async (req, res) => {
         res.json(data);
     } catch (err) {
         console.error('controllers/usersController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -89,7 +89,7 @@ const updateUser = async (req, res) => {
         res.json({ user: data });
     } catch (err) {
         console.error('controllers/usersController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -173,7 +173,7 @@ const createUser = async (req, res) => {
         res.status(201).json({ user: data, tempPassword, emailSent });
     } catch (err) {
         console.error('controllers/usersController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -213,7 +213,7 @@ const archiveUser = async (req, res) => {
         res.json({ user: data });
     } catch (err) {
         console.error('controllers/usersController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 
@@ -245,7 +245,7 @@ const restoreUser = async (req, res) => {
         res.json({ user: data });
     } catch (err) {
         console.error('controllers/usersController.js error:', err);
-        res.status(500).json({ error: 'Something went wrong. Please try again.' });
+        res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
     }
 };
 

@@ -40,11 +40,15 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // from the same Vercel project/origin (see vercel.json), so most real
 // traffic is same-origin and never even hits CORS -- this exists for the
 // cases that aren't: local development (Vite dev server on 5173, or
-// hitting the API directly on its own port), and any additional trusted
-// origins (e.g. a Vercel preview URL) added via CORS_EXTRA_ORIGINS.
-// Unlike the previous `cors()` (no options), which reflected
-// Access-Control-Allow-Origin: * for every request, this rejects any
-// origin not explicitly listed below.
+// hitting the API directly on its own port), a configured FRONTEND_URL
+// (set this in production if the frontend ever moves to its own
+// domain), and any additional trusted origins (e.g. a Vercel preview
+// URL) added via CORS_EXTRA_ORIGINS. Unlike the previous `cors()` (no
+// options), which reflected Access-Control-Allow-Origin: * for every
+// request, this rejects any origin not explicitly listed below.
+// `credentials: true` is enabled ahead of the planned Phase 3 migration
+// from localStorage-held JWTs to HttpOnly cookies -- cookie-based auth
+// requires it, and it's a no-op for the current Bearer-token flow.
 const DEFAULT_ALLOWED_ORIGINS = [
     'https://automated-excel-three.vercel.app',
     'http://localhost:5173',
@@ -54,7 +58,11 @@ const EXTRA_ORIGINS = (process.env.CORS_EXTRA_ORIGINS || '')
     .split(',')
     .map(o => o.trim())
     .filter(Boolean);
-const ALLOWED_ORIGINS = [...DEFAULT_ALLOWED_ORIGINS, ...EXTRA_ORIGINS];
+const ALLOWED_ORIGINS = [
+    ...DEFAULT_ALLOWED_ORIGINS,
+    process.env.FRONTEND_URL,
+    ...EXTRA_ORIGINS,
+].filter(Boolean);
 
 const corsOptions = {
     origin(origin, callback) {
@@ -63,10 +71,10 @@ const corsOptions = {
         // API key) -- allow, since this isn't a browser enforcing CORS
         // in the first place, and requireApiKey/requireAuth still gate
         // the actual route.
-        if (!origin) return callback(null, true);
-        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-        return callback(new Error(`Origin not allowed: ${origin}`));
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(new Error(`CORS request blocked by origin policy: ${origin}`));
     },
+    credentials: true,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
