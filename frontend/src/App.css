@@ -3228,6 +3228,46 @@ button.profile-status-pill {
   z-index: 1200;
 }
 
+/* Click-to-reveal popup for masked Payroll values (salary, bank account,
+   gov't ID numbers -- see MaskedValue in Payroll.jsx). Portaled to
+   document.body and positioned from the trigger's own bounding rect, same
+   reasoning as .custom-select-panel-portal above -- a normal child would
+   get clipped by .table-card's overflow-x: auto. Same z-index: 1200 for
+   the same reason (stays above .modal-overlay's 1100 if this page is ever
+   reached from inside a modal). */
+.payroll-reveal-popup {
+  position: fixed;
+  z-index: 1200;
+  background: #1a202c;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+  font-size: 13px;
+  white-space: nowrap;
+  animation: payrollPopupIn 0.12s ease;
+}
+
+.payroll-reveal-popup-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #a0aec0;
+  margin-bottom: 2px;
+}
+
+.payroll-reveal-popup-value {
+  font-family: monospace;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+@keyframes payrollPopupIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .custom-select-row {
   padding: 8px 12px;
   font-size: 12.5px;

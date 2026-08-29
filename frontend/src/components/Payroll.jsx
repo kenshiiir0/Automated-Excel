@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '../../Icon.jsx';
 import CustomSelect from '../../CustomSelect.jsx';
 
@@ -45,33 +46,95 @@ function maskTail(display) {
 }
 
 // Salary, bank account, and the four gov't ID numbers use this: a
-// permanent partial mask by default, full value on hover/focus. Not a
-// native `title` tooltip -- that would still leak the full value into the
-// DOM/accessibility tree at all times, defeating the point.
-function MaskedValue({ value, formatter }) {
-    const [revealed, setRevealed] = useState(false);
+// permanent partial mask sitting in the table, revealed only in a small
+// popup the user explicitly clicks open -- not on hover. Hover would show
+// the real value just by someone's cursor passing over the row (e.g.
+// while scrolling past on a shared screen); requiring a deliberate click
+// makes each reveal an intentional action, and the popup closes itself
+// again on an outside click, Escape, or leaving the page/tab.
+//
+// The popup is portaled to document.body rather than rendered as a normal
+// child, positioned from the trigger's live bounding rect -- same
+// reasoning as CustomSelect.jsx's dropdown panel: a normal child would get
+// clipped by .table-card's overflow-x: auto the moment it extended past
+// the card's edge. z-index: 1200 matches .custom-select-panel-portal, one
+// level above .modal-overlay's 1100, so this still renders correctly if
+// this page is ever reached from inside a modal.
+function MaskedValue({ value, formatter, label }) {
+    const [open, setOpen] = useState(false);
+    const [rect, setRect] = useState(null);
+    const triggerRef = useRef(null);
+    const popupRef = useRef(null);
+
     const isEmpty = value === null || value === undefined || value === '';
     const display = isEmpty ? '—' : (formatter ? formatter(value) : String(value));
+
+    const computeRect = useCallback(() => {
+        if (!triggerRef.current) return;
+        const r = triggerRef.current.getBoundingClientRect();
+        setRect({ top: r.bottom + 6, left: r.left });
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!open) return;
+        computeRect();
+    }, [open, computeRect]);
+
+    useEffect(() => {
+        if (!open) return;
+        const handleOutside = (e) => {
+            if (triggerRef.current?.contains(e.target)) return;
+            if (popupRef.current?.contains(e.target)) return;
+            setOpen(false);
+        };
+        const handleKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        const handleReposition = () => computeRect();
+        document.addEventListener('mousedown', handleOutside);
+        document.addEventListener('keydown', handleKey);
+        window.addEventListener('scroll', handleReposition, true);
+        window.addEventListener('resize', handleReposition);
+        return () => {
+            document.removeEventListener('mousedown', handleOutside);
+            document.removeEventListener('keydown', handleKey);
+            window.removeEventListener('scroll', handleReposition, true);
+            window.removeEventListener('resize', handleReposition);
+        };
+    }, [open, computeRect]);
 
     if (isEmpty) return <span>—</span>;
 
     return (
-        <span
-            tabIndex={0}
-            onMouseEnter={() => setRevealed(true)}
-            onMouseLeave={() => setRevealed(false)}
-            onFocus={() => setRevealed(true)}
-            onBlur={() => setRevealed(false)}
-            style={{
-                cursor: 'default',
-                fontFamily: revealed ? 'inherit' : 'monospace',
-                letterSpacing: revealed ? 'normal' : '1px',
-                color: revealed ? 'inherit' : '#a0aec0',
-                outline: 'none',
-            }}
-        >
-            {revealed ? display : maskTail(display)}
-        </span>
+        <>
+            <span
+                ref={triggerRef}
+                role="button"
+                tabIndex={0}
+                onClick={() => setOpen(o => !o)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+                style={{
+                    cursor: 'pointer',
+                    fontFamily: 'monospace',
+                    letterSpacing: '1px',
+                    color: open ? '#1D9FDA' : '#a0aec0',
+                    outline: 'none',
+                    borderBottom: '1px dashed #cbd5e0',
+                }}
+                title="Click to reveal"
+            >
+                {maskTail(display)}
+            </span>
+            {open && rect && createPortal(
+                <div
+                    ref={popupRef}
+                    className="payroll-reveal-popup"
+                    style={{ top: rect.top, left: rect.left }}
+                >
+                    {label && <div className="payroll-reveal-popup-label">{label}</div>}
+                    <div className="payroll-reveal-popup-value">{display}</div>
+                </div>,
+                document.body
+            )}
+        </>
     );
 }
 
@@ -282,13 +345,13 @@ export default function Payroll({ visible } = {}) {
                                 <td>{[e.last_name, e.first_name].filter(Boolean).join(', ') || '—'}</td>
                                 <td>{dash(e.department)}</td>
                                 <td>{dash(e.position)}</td>
-                                <td style={{ fontWeight: 600 }}><MaskedValue value={e.salary} formatter={money} /></td>
+                                <td style={{ fontWeight: 600 }}><MaskedValue value={e.salary} formatter={money} label="Salary" /></td>
                                 <td>{dash(e.bank_name)}</td>
-                                <td><MaskedValue value={e.bank_account} /></td>
-                                <td><MaskedValue value={e.sss_number} /></td>
-                                <td><MaskedValue value={e.philhealth_number} /></td>
-                                <td><MaskedValue value={e.hdmf_number} /></td>
-                                <td><MaskedValue value={e.tin_number} /></td>
+                                <td><MaskedValue value={e.bank_account} label="Bank Account" /></td>
+                                <td><MaskedValue value={e.sss_number} label="SSS No." /></td>
+                                <td><MaskedValue value={e.philhealth_number} label="PhilHealth No." /></td>
+                                <td><MaskedValue value={e.hdmf_number} label="HDMF No." /></td>
+                                <td><MaskedValue value={e.tin_number} label="TIN" /></td>
                             </tr>
                         ))}
                     </tbody>
