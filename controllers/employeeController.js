@@ -71,7 +71,8 @@ const getAllEmployees = async (req, res) => {
         if (error) throw error;
         res.json(withRoleFilter(req, data));
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/employeeController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -86,7 +87,8 @@ const getEmployeeById = async (req, res) => {
         if (error) throw error;
         res.json(withRoleFilter(req, data));
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/employeeController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -127,7 +129,8 @@ const createEmployee = async (req, res) => {
         await logCreate({ entityType: 'employee', entityId: created.id, entityLabel: employeeLabel(created), req });
         res.status(201).json(created);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/employeeController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -154,7 +157,8 @@ const updateEmployee = async (req, res) => {
         await logUpdate({ entityType: 'employee', entityId: updated.id, entityLabel: employeeLabel(updated), before, after: updates, req });
         res.json(updated);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/employeeController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -181,7 +185,8 @@ const deleteEmployee = async (req, res) => {
         await logArchive({ entityType: 'employee', entityId: Number(req.params.id), entityLabel: employeeLabel(existing), req });
         res.json({ message: 'Employee archived' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/employeeController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -207,7 +212,8 @@ const restoreEmployee = async (req, res) => {
         await logRestore({ entityType: 'employee', entityId: Number(req.params.id), entityLabel: employeeLabel(existing), req });
         res.json({ message: 'Employee restored' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/employeeController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

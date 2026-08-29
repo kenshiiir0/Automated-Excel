@@ -35,7 +35,8 @@ const listUsers = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/usersController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -87,7 +88,8 @@ const updateUser = async (req, res) => {
         await logUpdate({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), before, after: updates, req });
         res.json({ user: data });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/usersController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -170,7 +172,8 @@ const createUser = async (req, res) => {
 
         res.status(201).json({ user: data, tempPassword, emailSent });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/usersController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -209,7 +212,8 @@ const archiveUser = async (req, res) => {
         await logArchive({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), req });
         res.json({ user: data });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/usersController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -240,7 +244,8 @@ const restoreUser = async (req, res) => {
         await logRestore({ entityType: 'user', entityId: data.id, entityLabel: userLabel(data), req });
         res.json({ user: data });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/usersController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

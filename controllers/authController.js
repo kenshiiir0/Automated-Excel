@@ -63,7 +63,8 @@ const login = async (req, res) => {
             user: { id: user.id, username: user.username, full_name: user.full_name, role: user.role },
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/authController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

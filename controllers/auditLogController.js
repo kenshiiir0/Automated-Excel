@@ -32,7 +32,8 @@ const listAuditLog = async (req, res) => {
 
         res.json({ entries: data, total: count, limit: pageSize, offset: pageOffset });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/auditLogController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

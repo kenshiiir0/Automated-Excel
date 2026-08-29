@@ -84,7 +84,7 @@ export const getDashboardStats = async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching dashboard stats:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -113,7 +113,7 @@ export const getDepartmentDistribution = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Error fetching department distribution:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -142,7 +142,7 @@ export const getEmploymentStatusDistribution = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Error fetching employment status:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -171,7 +171,7 @@ export const getCandidatePipeline = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Error fetching candidate pipeline:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -199,7 +199,7 @@ export const getEmailProviderDistribution = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Error fetching email provider distribution:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -259,7 +259,7 @@ export const getWorkAnniversaries = async (req, res) => {
         res.json(upcoming);
     } catch (err) {
         console.error('Error fetching anniversaries:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -293,7 +293,7 @@ export const getUpForRegularization = async (req, res) => {
         res.json(dueSoon);
     } catch (err) {
         console.error('Error fetching up-for-regularization:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -369,7 +369,7 @@ export const getUpcomingActions = async (req, res) => {
         res.json({ upForRegularization, upcomingAnniversaries });
     } catch (err) {
         console.error('Error fetching upcoming-actions:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -402,7 +402,7 @@ export const getHiringTrends = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Error fetching hiring trends:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -435,7 +435,7 @@ export const getAttritionRate = async (req, res) => {
         });
     } catch (err) {
         console.error('Error calculating attrition rate:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -460,7 +460,7 @@ export const getRecruitmentMetrics = async (req, res) => {
         res.json(metrics);
     } catch (err) {
         console.error('Error fetching recruitment metrics:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -483,7 +483,7 @@ export const getGenderDistribution = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching gender-distribution:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -509,7 +509,7 @@ export const getActiveByDept = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching active-by-dept:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -531,7 +531,7 @@ export const getActiveStatus = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching active-status:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -569,7 +569,7 @@ export const getMonthlyTrend = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching monthly-trend:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -597,7 +597,7 @@ export const getSeparationReasons = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching separation-reasons:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -621,7 +621,7 @@ export const getSeparationsByDept = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching separations-by-dept:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -646,6 +646,6 @@ export const getRecruitmentPipeline = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Error fetching recruitment-pipeline:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };

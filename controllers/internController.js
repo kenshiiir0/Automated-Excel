@@ -22,7 +22,8 @@ const getAllInterns = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/internController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -37,7 +38,8 @@ const getInternById = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/internController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -57,7 +59,8 @@ const createIntern = async (req, res) => {
         await logCreate({ entityType: 'intern', entityId: created.id, entityLabel: internLabel(created), req });
         res.status(201).json(created);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/internController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -82,7 +85,8 @@ const updateIntern = async (req, res) => {
         await logUpdate({ entityType: 'intern', entityId: updated.id, entityLabel: internLabel(updated), before, after: req.body, req });
         res.json(updated);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/internController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -108,7 +112,8 @@ const deleteIntern = async (req, res) => {
         await logArchive({ entityType: 'intern', entityId: Number(req.params.id), entityLabel: internLabel(existing), req });
         res.json({ message: 'Intern record archived' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/internController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -132,7 +137,8 @@ const restoreIntern = async (req, res) => {
         await logRestore({ entityType: 'intern', entityId: Number(req.params.id), entityLabel: internLabel(existing), req });
         res.json({ message: 'Intern record restored' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/internController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

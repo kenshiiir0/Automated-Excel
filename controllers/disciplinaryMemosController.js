@@ -117,7 +117,7 @@ const previewMemo = async (req, res) => {
         res.send(buffer);
     } catch (err) {
         console.error('Memo preview failed:', err);
-        res.status(500).json({ error: err.message || 'Could not generate the memo preview.' });
+        res.status(500).json({ error: 'Could not generate the memo preview.' });
     }
 };
 
@@ -212,7 +212,7 @@ const sendMemo = async (req, res) => {
         res.json({ sent: true, toEmail, memo: record });
     } catch (err) {
         console.error('Memo send failed:', err);
-        res.status(500).json({ error: err.message || 'Could not send the memo.' });
+        res.status(500).json({ error: 'Could not send the memo.' });
     }
 };
 
@@ -233,7 +233,8 @@ const listMemos = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/disciplinaryMemosController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -326,7 +327,7 @@ const downloadMemo = async (req, res) => {
         res.send(buffer);
     } catch (err) {
         console.error('Memo download failed:', err);
-        res.status(500).json({ error: err.message || 'Could not generate this memo for download.' });
+        res.status(500).json({ error: 'Could not generate this memo for download.' });
     }
 };
 

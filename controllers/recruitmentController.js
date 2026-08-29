@@ -22,7 +22,8 @@ const getAllCandidates = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/recruitmentController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -40,7 +41,8 @@ const createCandidate = async (req, res) => {
         await logCreate({ entityType: 'candidate', entityId: created.id, entityLabel: candidateLabel(created), req });
         res.status(201).json(created);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/recruitmentController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -65,7 +67,8 @@ const updateCandidate = async (req, res) => {
         await logUpdate({ entityType: 'candidate', entityId: updated.id, entityLabel: candidateLabel(updated), before, after: req.body, req });
         res.json(updated);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/recruitmentController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -91,7 +94,8 @@ const deleteCandidate = async (req, res) => {
         await logArchive({ entityType: 'candidate', entityId: Number(req.params.id), entityLabel: candidateLabel(existing), req });
         res.json({ message: 'Candidate archived' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/recruitmentController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -115,7 +119,8 @@ const restoreCandidate = async (req, res) => {
         await logRestore({ entityType: 'candidate', entityId: Number(req.params.id), entityLabel: candidateLabel(existing), req });
         res.json({ message: 'Candidate restored' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/recruitmentController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

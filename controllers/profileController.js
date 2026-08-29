@@ -51,7 +51,8 @@ const getProfile = async (req, res) => {
         const employee = await findEmployeeByEmail(user.email);
         res.json({ user, employee });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/profileController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -77,7 +78,8 @@ const updateProfile = async (req, res) => {
         const employee = await findEmployeeByEmail(user.email);
         res.json({ user, employee });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/profileController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -115,7 +117,8 @@ const changePassword = async (req, res) => {
         if (updateError) throw updateError;
         res.json({ message: 'Password updated.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/profileController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

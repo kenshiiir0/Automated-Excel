@@ -10,7 +10,8 @@ const getEmailDirectory = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/emailController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -26,7 +27,8 @@ const addToDirectory = async (req, res) => {
         if (error) throw error;
         res.status(201).json(data[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/emailController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -38,7 +40,8 @@ const sendEmail = async (req, res) => {
 
         res.json({ success: true, message: 'Email queued for sending', data: { to, subject } });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/emailController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

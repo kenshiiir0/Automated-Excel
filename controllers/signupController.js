@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { sendOtpEmail } from '../lib/mailer.js';
 import { isAllowedSignupEmail, ALLOWED_SIGNUP_DOMAINS } from '../lib/allowedDomains.js';
+import { safeEqual } from '../lib/safeCompare.js';
 
 const OTP_TTL_MINUTES = 10;
 
@@ -73,7 +74,8 @@ const requestOtp = async (req, res) => {
 
         res.json({ message: 'Verification code sent. Check your email.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/signupController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -103,7 +105,7 @@ const verifyOtp = async (req, res) => {
         if (!user.otp_code || !user.otp_expires_at || new Date(user.otp_expires_at) < new Date()) {
             return res.status(400).json({ error: 'This code has expired. Request a new one.' });
         }
-        if (user.otp_code !== code.trim()) {
+        if (!safeEqual(user.otp_code, code.trim())) {
             return res.status(400).json({ error: 'Incorrect code.' });
         }
 
@@ -121,7 +123,8 @@ const verifyOtp = async (req, res) => {
 
         res.json({ message: 'Account verified. You can now log in.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/signupController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

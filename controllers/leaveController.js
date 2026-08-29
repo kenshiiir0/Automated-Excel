@@ -10,7 +10,8 @@ const getAllLeaves = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/leaveController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -24,7 +25,8 @@ const getLeavesByEmployee = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/leaveController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -40,7 +42,8 @@ const createLeave = async (req, res) => {
         if (error) throw error;
         res.status(201).json(data[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/leaveController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 
@@ -55,7 +58,8 @@ const updateLeave = async (req, res) => {
         if (error) throw error;
         res.json(data[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/leaveController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
 

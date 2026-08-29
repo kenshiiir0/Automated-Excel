@@ -36,7 +36,39 @@ app.set('trust proxy', 1);
 // the actual frontend HTML is served as static files by Vercel, not by
 // this server, and a strict API-shaped CSP would just get in the way.
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors());
+// CORS allowlist. In production the frontend and this API are served
+// from the same Vercel project/origin (see vercel.json), so most real
+// traffic is same-origin and never even hits CORS -- this exists for the
+// cases that aren't: local development (Vite dev server on 5173, or
+// hitting the API directly on its own port), and any additional trusted
+// origins (e.g. a Vercel preview URL) added via CORS_EXTRA_ORIGINS.
+// Unlike the previous `cors()` (no options), which reflected
+// Access-Control-Allow-Origin: * for every request, this rejects any
+// origin not explicitly listed below.
+const DEFAULT_ALLOWED_ORIGINS = [
+    'https://automated-excel-three.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+];
+const EXTRA_ORIGINS = (process.env.CORS_EXTRA_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+const ALLOWED_ORIGINS = [...DEFAULT_ALLOWED_ORIGINS, ...EXTRA_ORIGINS];
+
+const corsOptions = {
+    origin(origin, callback) {
+        // No Origin header at all (server-to-server calls, curl, Postman,
+        // the Zoho Deluge integration hitting /api/zoho/* with its own
+        // API key) -- allow, since this isn't a browser enforcing CORS
+        // in the first place, and requireApiKey/requireAuth still gate
+        // the actual route.
+        if (!origin) return callback(null, true);
+        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(new Error(`Origin not allowed: ${origin}`));
+    },
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Blanket rate limit across every /api/* route -- a coarse safety net so

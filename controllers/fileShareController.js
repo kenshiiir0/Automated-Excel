@@ -119,7 +119,7 @@ export const sendFile = async (req, res) => {
         res.json({ sent: true, toEmail, share: record });
     } catch (err) {
         console.error('File share send failed:', err);
-        res.status(500).json({ error: err.message || 'Could not send the file.' });
+        res.status(500).json({ error: 'Could not send the file.' });
     }
 };
 
@@ -135,6 +135,7 @@ export const listFileShares = async (req, res) => {
         if (error) throw error;
         res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('controllers/fileShareController.js error:', err);
+        res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
 };
