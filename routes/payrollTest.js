@@ -28,16 +28,18 @@ const router = express.Router();
 // was used when this record was created via the Add Employee form.
 const TEST_PAYROLL_NAME_MATCH = { first: 'cedric', last: 'gencianos' };
 
-// Standard DOLE monthly-equivalent factor for a 6-day workweek with an
-// unpaid rest day (261 working days/year): monthlySalary = dailyRate * 261
-// / 12. Cedric's stored `salary` was originally SET by applying this
-// factor forward (₱695/day -> ₱15,116.25/month, per the Mon-Sat schedule
-// confirmed for him) -- there is no separate daily_rate column in the
-// employees table, so this reverses the same factor to recover a daily
-// rate for holiday-pay math. This assumption (6-day week, factor 261) is
-// specific to how Cedric's record was set up; it is NOT a safe assumption
-// to reuse for any other employee without confirming their own schedule.
-const MONTHLY_TO_DAILY_FACTOR = 261 / 12;
+// CORRECTED 2026-08-29: verified against 2MG Incorporated's actual Pay
+// Register and Payslips for the Aug 11-25, 2026 cutoff (reverse-engineered
+// to the peso across 4 employees x 4 deduction types -- absence, late,
+// vacation leave, and special-holiday-overtime pay all matched exactly
+// using this factor). The REAL factor 2MG's payroll system uses is 313
+// working days/year (6-day workweek, rest day PAID), not 261 (rest day
+// unpaid) -- monthlySalary = dailyRate * 313 / 12. Cedric's stored `salary`
+// was originally set using the wrong (261) factor before this reference
+// data existed; it needs to be corrected in the employees table to
+// ₱18,127.92 (₱695/day x 313 / 12) to match how the rest of the company is
+// actually computed -- see the note this route returns until that's done.
+const MONTHLY_TO_DAILY_FACTOR = 313 / 12;
 
 function deriveDailyRate(monthlySalary) {
     return Math.round((monthlySalary / MONTHLY_TO_DAILY_FACTOR) * 100) / 100;
@@ -125,8 +127,8 @@ router.get('/cedric-test', requireRole('admin', 'super_admin'), async (req, res)
             },
             payroll,
             assumptions: {
-                cutoff: 'Semi-monthly, full attendance assumed except for any holiday date tested above',
-                dailyRateNote: `Daily rate (₱${dailyRate}/day) reverse-derived from monthly salary using the 6-day-workweek factor (261 days/yr ÷ 12) confirmed for this employee -- not necessarily valid for other employees.`,
+                cutoff: 'Semi-monthly (matches 2MG Incorporated\'s actual Aug 11-25 2026 cutoff), full attendance assumed except for any holiday date tested above',
+                dailyRateNote: `Daily rate (₱${dailyRate}/day) reverse-derived from monthly salary using the 313-day/yr factor (6-day workweek, paid rest day) -- verified against 2MG Incorporated's actual Aug 11-25 2026 payslips.${monthlySalary === 15116.25 ? ' NOTE: this employee still has the OLD, incorrect salary (₱15,116.25, from the wrong 261-day factor) -- update to ₱18,127.92 to match.' : ''}`,
                 note: 'Pilot calculation for one employee only. Government contribution tables used here should be verified against current official SSS/PhilHealth/Pag-IBIG/BIR circulars before relying on this for real payroll.',
             },
         });
