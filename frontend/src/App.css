@@ -3012,9 +3012,21 @@ button.profile-status-pill {
 /* Date of Incident's native date input renders its mm/dd/yyyy
    placeholder at the same font-size as every other .emp-form-input --
    noticeably larger next to the compact rule/employee text next to it.
-   This one field only gets a smaller size. */
+   This one field only gets a smaller size.
+   It also used to look much wider than a normal date field (e.g. Exit
+   Date in the New Employee form): its .emp-form-group parent is a
+   flex column (default align-items: stretch), and this field's grid
+   cell in DisciplinaryMemos.jsx is one of only two columns
+   (gridTemplateColumns: '1fr 1fr'), so with no width limit on the
+   input itself it stretched to fill roughly half the modal's width.
+   Exit Date looks compact simply because its own grid
+   (repeat(auto-fill, minmax(200px, 1fr))) packs many fields per row,
+   keeping each column narrow -- capping this input's width directly
+   reproduces that same compact look regardless of the grid it sits
+   in. */
 .date-input-compact {
   font-size: 12px;
+  max-width: 160px;
 }
 
 /* Custom searchable Company Rule dropdown (replaces the old native
