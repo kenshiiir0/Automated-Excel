@@ -26,6 +26,54 @@ function dash(v) {
     return v === null || v === undefined || v === '' ? '—' : v;
 }
 
+// Partial mask: reveal only the FIRST DIGIT of the value (for a money
+// value like "₱35,000.00" that means keeping the "₱" prefix -- not a
+// digit itself -- plus the "3", nothing more), then a fixed, uniform
+// 6-character run of dots for everything after it, regardless of how
+// long the real value actually is. Fixed-length on purpose: mirroring
+// the real length would leak how many digits follow (e.g. a 5-digit vs.
+// 7-digit salary), which is exactly what masking is meant to hide.
+// Hovering (or keyboard focus, so this is reachable without a mouse)
+// swaps in the real full value.
+const MASK_TAIL = '••••••';
+
+function maskTail(display) {
+    const firstDigitIndex = display.search(/[0-9]/);
+    if (firstDigitIndex === -1) return display; // no digit in here at all (e.g. "—") -- nothing to mask
+    return display.slice(0, firstDigitIndex + 1) + MASK_TAIL;
+}
+
+// Salary, bank account, and the four gov't ID numbers use this: a
+// permanent partial mask by default, full value on hover/focus. Not a
+// native `title` tooltip -- that would still leak the full value into the
+// DOM/accessibility tree at all times, defeating the point.
+function MaskedValue({ value, formatter }) {
+    const [revealed, setRevealed] = useState(false);
+    const isEmpty = value === null || value === undefined || value === '';
+    const display = isEmpty ? '—' : (formatter ? formatter(value) : String(value));
+
+    if (isEmpty) return <span>—</span>;
+
+    return (
+        <span
+            tabIndex={0}
+            onMouseEnter={() => setRevealed(true)}
+            onMouseLeave={() => setRevealed(false)}
+            onFocus={() => setRevealed(true)}
+            onBlur={() => setRevealed(false)}
+            style={{
+                cursor: 'default',
+                fontFamily: revealed ? 'inherit' : 'monospace',
+                letterSpacing: revealed ? 'normal' : '1px',
+                color: revealed ? 'inherit' : '#a0aec0',
+                outline: 'none',
+            }}
+        >
+            {revealed ? display : maskTail(display)}
+        </span>
+    );
+}
+
 export default function Payroll({ visible } = {}) {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -173,13 +221,13 @@ export default function Payroll({ visible } = {}) {
                                 <td>{[e.last_name, e.first_name].filter(Boolean).join(', ') || '—'}</td>
                                 <td>{dash(e.department)}</td>
                                 <td>{dash(e.position)}</td>
-                                <td style={{ fontWeight: 600 }}>{money(e.salary)}</td>
+                                <td style={{ fontWeight: 600 }}><MaskedValue value={e.salary} formatter={money} /></td>
                                 <td>{dash(e.bank_name)}</td>
-                                <td>{dash(e.bank_account)}</td>
-                                <td>{dash(e.sss_number)}</td>
-                                <td>{dash(e.philhealth_number)}</td>
-                                <td>{dash(e.hdmf_number)}</td>
-                                <td>{dash(e.tin_number)}</td>
+                                <td><MaskedValue value={e.bank_account} /></td>
+                                <td><MaskedValue value={e.sss_number} /></td>
+                                <td><MaskedValue value={e.philhealth_number} /></td>
+                                <td><MaskedValue value={e.hdmf_number} /></td>
+                                <td><MaskedValue value={e.tin_number} /></td>
                             </tr>
                         ))}
                     </tbody>
