@@ -178,13 +178,37 @@ function CalcSection({ title, subtitle, children }) {
 // validated -- see lib/payrollCalculator.js and routes/payrollTest.js for
 // why. Clicking the "Payroll Calc" button for anyone else shows a clear
 // explanation instead of pretending to compute something for them.
+// Which half of the month a date falls in, for semi-monthly cutoff
+// grouping: 1st-15th, or 16th-end. Holidays are only ever tested together
+// if they land in the SAME cutoff -- mixing, say, a Jan 1 holiday with a
+// Jan 20 holiday into one "cutoff" result would misrepresent which pay
+// period either of them actually belongs to.
+function cutoffKeyFor(dateStr) {
+    const day = Number(dateStr.slice(8, 10));
+    const monthPart = dateStr.slice(0, 7); // 'YYYY-MM'
+    return `${monthPart}-${day <= 15 ? '1st-15th' : '16th-end'}`;
+}
+
+function cutoffLabelFor(key) {
+    // key looks like "2026-04-1st-15th" or "2026-04-16th-end"
+    const match = key.match(/^(\d{4})-(\d{2})-(1st-15th|16th-end)$/);
+    if (!match) return key;
+    const [, year, month, half] = match;
+    const monthName = new Date(`${year}-${month}-01T00:00:00`).toLocaleString('en-US', { month: 'long' });
+    return `${monthName} ${year}, ${half} cutoff`;
+}
+
 function PayrollCalcModal({ employee, onClose }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [holidays, setHolidays] = useState([]);
-    const [holidayDate, setHolidayDate] = useState('');
-    const [wasPresent, setWasPresent] = useState(true);
+    const [selectedCutoff, setSelectedCutoff] = useState('');
+    // Map of date -> { wasPresent } for every holiday CHECKED within the
+    // selected cutoff, so more than one holiday landing in the same
+    // semi-monthly period (e.g. Apr 2 Maundy Thursday + Apr 3 Good Friday)
+    // can be tested together instead of one at a time.
+    const [holidaySelections, setHolidaySelections] = useState({});
 
     const isPilotEmployee = /cedric/i.test(employee.first_name || '') && /gencianos/i.test(employee.last_name || '');
 
@@ -201,14 +225,52 @@ function PayrollCalcModal({ employee, onClose }) {
         })();
     }, [isPilotEmployee]);
 
+    // Every cutoff that actually has at least one 2026 holiday in it --
+    // no point offering a dropdown of 24 cutoffs when only a handful have
+    // holidays to test against.
+    const cutoffOptions = useMemo(() => {
+        const keys = [...new Set(holidays.map(h => cutoffKeyFor(h.date)))];
+        keys.sort();
+        return keys;
+    }, [holidays]);
+
+    const holidaysInSelectedCutoff = useMemo(() => {
+        if (!selectedCutoff) return [];
+        return holidays.filter(h => cutoffKeyFor(h.date) === selectedCutoff);
+    }, [holidays, selectedCutoff]);
+
+    // Switching cutoffs clears any checked holidays from the PREVIOUS
+    // cutoff -- selections from Jan 1-15 shouldn't silently carry over and
+    // get mixed into a Feb 16-28 test.
+    const handleCutoffChange = (value) => {
+        setSelectedCutoff(value);
+        setHolidaySelections({});
+    };
+
+    const toggleHoliday = (date, checked) => {
+        setHolidaySelections(prev => {
+            const next = { ...prev };
+            if (checked) next[date] = { wasPresent: true };
+            else delete next[date];
+            return next;
+        });
+    };
+
+    const setHolidayPresence = (date, wasPresent) => {
+        setHolidaySelections(prev => ({ ...prev, [date]: { ...prev[date], wasPresent } }));
+    };
+
     const runCalculation = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
-            if (holidayDate) {
-                params.set('holidayDate', holidayDate);
-                params.set('wasPresent', String(wasPresent));
+            const holidaysPayload = Object.entries(holidaySelections).map(([date, sel]) => ({
+                date,
+                wasPresent: !!sel.wasPresent,
+            }));
+            if (holidaysPayload.length > 0) {
+                params.set('holidays', JSON.stringify(holidaysPayload));
             }
             const qs = params.toString();
             const res = await fetch(`/api/payroll-test/cedric-test${qs ? `?${qs}` : ''}`);
@@ -220,16 +282,15 @@ function PayrollCalcModal({ employee, onClose }) {
         } finally {
             setLoading(false);
         }
-    }, [holidayDate, wasPresent]);
+    }, [holidaySelections]);
 
     useEffect(() => {
         if (!isPilotEmployee) { setLoading(false); return; }
         runCalculation();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isPilotEmployee, holidayDate, wasPresent]);
+    }, [isPilotEmployee, holidaySelections]);
 
     const empName = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || employee.emp_id;
-    const selectedHoliday = holidays.find(h => h.date === holidayDate);
 
     return (
         <Modal title="Payroll Calculation" onClose={onClose} maxWidth={480}>
@@ -243,38 +304,71 @@ function PayrollCalcModal({ employee, onClose }) {
                 </p>
             ) : (
                 <>
-                    {holidays.length > 0 && (
+                    {cutoffOptions.length > 0 && (
                         <div style={{
                             background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: 8,
                             padding: '12px 14px', marginBottom: 16,
                         }}>
                             <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1a202c', marginBottom: 8 }}>
-                                Test against a 2026 holiday
+                                Test against 2026 holiday(s)
                             </div>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <select
-                                    value={holidayDate}
-                                    onChange={e => setHolidayDate(e.target.value)}
-                                    className="emp-form-input"
-                                    style={{ width: 260, maxWidth: '100%', fontSize: 13 }}
-                                >
-                                    <option value="">No holiday — ordinary cutoff</option>
-                                    {holidays.map(h => (
-                                        <option key={h.date} value={h.date}>
-                                            {h.date} — {h.name} ({h.type === 'regular' ? 'Regular' : 'Special Non-Working'}{h.tentative ? ', tentative' : ''})
-                                        </option>
-                                    ))}
-                                </select>
-                                {holidayDate && (
-                                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#4a5568', whiteSpace: 'nowrap' }}>
-                                        <input type="checkbox" checked={wasPresent} onChange={e => setWasPresent(e.target.checked)} />
-                                        Present / worked that day
-                                    </label>
-                                )}
-                            </div>
-                            {selectedHoliday?.tentative && (
-                                <div style={{ fontSize: 11.5, color: '#c05621', marginTop: 6 }}>
-                                    Note: this date is tentative — subject to the Islamic calendar/presidential proclamation.
+                            <select
+                                value={selectedCutoff}
+                                onChange={e => handleCutoffChange(e.target.value)}
+                                className="emp-form-input"
+                                style={{ width: '100%', fontSize: 13, marginBottom: selectedCutoff ? 10 : 0 }}
+                            >
+                                <option value="">No holiday — ordinary cutoff</option>
+                                {cutoffOptions.map(key => (
+                                    <option key={key} value={key}>{cutoffLabelFor(key)}</option>
+                                ))}
+                            </select>
+
+                            {selectedCutoff && holidaysInSelectedCutoff.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    <div style={{ fontSize: 11.5, color: '#718096' }}>
+                                        {holidaysInSelectedCutoff.length > 1
+                                            ? `This cutoff has ${holidaysInSelectedCutoff.length} holidays — check any that apply, each can be marked present/absent independently.`
+                                            : 'Check the box to include this holiday in the test.'}
+                                    </div>
+                                    {holidaysInSelectedCutoff.map(h => {
+                                        const sel = holidaySelections[h.date];
+                                        const checked = !!sel;
+                                        return (
+                                            <div key={h.date} style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                gap: 10, padding: '6px 8px', background: checked ? '#fff' : 'transparent',
+                                                border: checked ? '1px solid #cbd5e0' : '1px solid transparent', borderRadius: 6,
+                                            }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#2d3748', flex: 1, cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={e => toggleHoliday(h.date, e.target.checked)}
+                                                    />
+                                                    <span>
+                                                        <strong>{h.date}</strong> — {h.name}
+                                                        <span style={{ color: '#718096' }}> ({h.type === 'regular' ? 'Regular' : 'Special Non-Working'}{h.tentative ? ', tentative' : ''})</span>
+                                                    </span>
+                                                </label>
+                                                {checked && (
+                                                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#4a5568', whiteSpace: 'nowrap' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={sel.wasPresent}
+                                                            onChange={e => setHolidayPresence(h.date, e.target.checked)}
+                                                        />
+                                                        Present
+                                                    </label>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {holidaysInSelectedCutoff.some(h => h.tentative && holidaySelections[h.date]) && (
+                                        <div style={{ fontSize: 11.5, color: '#c05621' }}>
+                                            Note: one or more selected dates are tentative — subject to the Islamic calendar/presidential proclamation.
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -345,7 +439,7 @@ function PayrollCalcModal({ employee, onClose }) {
                             </CalcSection>
 
                             <CalcSection title="Result">
-                                <Row label="Monthly Salary (on file)" value={money(data.payroll.monthlySalary)} />
+                                <Row label="Monthly Salary (on file, before absences)" value={money(data.payroll.monthlySalary)} />
                                 <Row label="Total Deductions" value={money(data.payroll.totalDeductions)} />
                                 <Row label="Net Pay (this cutoff)" value={money(data.payroll.netPay)} strong />
                             </CalcSection>

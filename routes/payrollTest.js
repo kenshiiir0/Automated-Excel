@@ -73,14 +73,33 @@ router.get('/cedric-test', requireRole('admin', 'super_admin'), async (req, res)
             return res.status(422).json({ error: 'This employee has no valid salary on file yet -- cannot compute payroll.', employee: data });
         }
 
-        // Optional holiday-pay test: ?holidayDate=2026-01-01&wasPresent=true
-        // (&isRestDay=true, &presentDayBefore=false are also accepted).
-        // Only one holiday date at a time for now, matching the UI's single
-        // date-picker -- multiple simultaneous holiday tests in one cutoff
-        // can be added later if needed.
+        // Optional holiday-pay test: ?holidays=<JSON array>, e.g.
+        // ?holidays=[{"date":"2026-04-02","wasPresent":true},{"date":"2026-04-03","wasPresent":false}]
+        // Supports any number of holiday dates within the same cutoff --
+        // several 2026 holidays do land close together (Apr 2-3: Maundy
+        // Thursday + Good Friday; Nov 1-2: All Saints' + All Souls'), so a
+        // real semi-monthly cutoff can easily contain more than one.
+        // Falls back to the older single-date form (?holidayDate=...) for
+        // backwards compatibility, in case anything still calls it that way.
         const dailyRate = deriveDailyRate(monthlySalary);
-        const holidayAttendance = [];
-        if (req.query.holidayDate) {
+        let holidayAttendance = [];
+        if (req.query.holidays) {
+            try {
+                const parsed = JSON.parse(String(req.query.holidays));
+                if (Array.isArray(parsed)) {
+                    holidayAttendance = parsed
+                        .filter(h => h && h.date)
+                        .map(h => ({
+                            date: String(h.date),
+                            wasPresent: h.wasPresent === true || h.wasPresent === 'true',
+                            isRestDay: h.isRestDay === true || h.isRestDay === 'true',
+                            presentDayBefore: h.presentDayBefore !== false && h.presentDayBefore !== 'false',
+                        }));
+                }
+            } catch {
+                return res.status(400).json({ error: 'Invalid "holidays" parameter -- must be a JSON array.' });
+            }
+        } else if (req.query.holidayDate) {
             holidayAttendance.push({
                 date: String(req.query.holidayDate),
                 wasPresent: req.query.wasPresent === 'true',
